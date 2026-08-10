@@ -1,26 +1,145 @@
 @import "tailwindcss";
 
+/* 토큰 원본: docs/design-reference.md (Auros — Abyssal terminal) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --liquid-abyss: #012624;
+  --liquid-deep: #011d1c;
+  --liquid-kelp: #003734;
+  --liquid-mist: #edfffe;
+  --silver-mist: #bbc7c6;
+  --slate-deep: #707777;
+  --lavender-phosphor: #fde9ff;
+
+  --gradient-aurora: linear-gradient(
+    90deg,
+    rgb(203, 255, 252) 0%,
+    rgb(237, 255, 254) 26.25%,
+    rgb(255, 253, 250) 47.57%,
+    rgb(250, 209, 255) 88.96%
+  );
+
+  /* 인트로 커버가 걷힌 뒤 히어로가 등장하기까지의 대기 */
+  --hero-delay: 1.15s;
+}
+
+/* layout.tsx의 인라인 스크립트가 첫 방문이 아닐 때 설정한다 */
+:root[data-intro="seen"] {
+  --hero-delay: 0s;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-abyss: var(--liquid-abyss);
+  --color-deep: var(--liquid-deep);
+  --color-kelp: var(--liquid-kelp);
+  --color-mist: var(--liquid-mist);
+  --color-silver: var(--silver-mist);
+  --color-slate: var(--slate-deep);
+  --color-phosphor: var(--lavender-phosphor);
+  --font-sans: var(--font-inter);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--liquid-abyss);
+  color: var(--silver-mist);
   font-family: var(--font-sans);
+}
+
+/* 레퍼런스의 유일한 그라디언트 사용처 — CTA 버튼 하나 */
+.btn-aurora {
+  background: var(--gradient-aurora);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 커버는 화면 밖으로 걷힌다. 끝난 뒤엔 뷰포트 밖이라 클릭을 막지 않는다 */
+@keyframes cover-out {
+  0%,
+  62% {
+    transform: none;
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes cover-name {
+  from {
+    opacity: 0;
+    letter-spacing: 0.2em;
+  }
+  to {
+    opacity: 1;
+    letter-spacing: -0.04em;
+  }
+}
+
+.intro-cover {
+  animation: cover-out 1.6s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+}
+
+.intro-cover > * {
+  animation: cover-name 0.8s ease 0.3s both;
+}
+
+:root[data-intro="seen"] .intro-cover {
+  display: none;
+}
+
+.rise {
+  animation: rise 0.6s ease both;
+}
+
+.rise:nth-child(1) {
+  animation-delay: var(--hero-delay);
+}
+.rise:nth-child(2) {
+  animation-delay: calc(var(--hero-delay) + 0.12s);
+}
+.rise:nth-child(3) {
+  animation-delay: calc(var(--hero-delay) + 0.24s);
+}
+.rise:nth-child(4) {
+  animation-delay: calc(var(--hero-delay) + 0.36s);
+}
+
+/* showModal()은 배경을 inert로 만들지만 스크롤까지 잠그지는 않는다 */
+html:has(dialog[open]) {
+  overflow: hidden;
+}
+
+dialog[open] .nav-item {
+  animation: rise 0.4s ease both;
+}
+dialog[open] .nav-item:nth-child(1) {
+  animation-delay: 0.05s;
+}
+dialog[open] .nav-item:nth-child(2) {
+  animation-delay: 0.11s;
+}
+dialog[open] .nav-item:nth-child(3) {
+  animation-delay: 0.17s;
+}
+dialog[open] .nav-item:nth-child(4) {
+  animation-delay: 0.23s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-cover {
+    display: none;
+  }
+
+  .intro-cover > *,
+  .rise,
+  dialog[open] .nav-item {
+    animation: none;
+  }
 }

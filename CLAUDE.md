@@ -17,14 +17,22 @@ Zustand · TanStack Query · Zod · Prisma는 **아직 설치하지 않았다.**
 
 ## 현재 상태
 
-`create-next-app` 직후 상태다. `src/app/`에 루트 `layout.tsx`·`page.tsx`(기본 템플릿)만 있다.
+메인 페이지 뼈대까지 만들었다. 디자인은 `docs/design-reference.md`(Auros, 다크 전용) 기준.
 
-`.claude/rules/structure.md`의 `src/` 폴더들(`components/`, `hooks/`, `lib/`, `types/`, `constants/`)과
-`(public)` / `(auth)` 라우트 그룹은 **미리 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
+`.claude/rules/structure.md`의 나머지 폴더(`components/`, `hooks/`, `lib/`, `types/`)와
+`(auth)` 라우트 그룹은 **미리 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
 
 | 경로 | 상태 |
 |------|------|
-| `/` | `create-next-app` 기본 페이지 — 교체 필요 |
+| `/` | 히어로 + 인트로 커버 — **원고가 자리표시 문구다** |
+| `/about` `/skills` `/work` `/contact` | 뼈대만. 내용 미작성 |
+
+- 네비게이션은 모든 화면에서 **풀스크린 버거**(`app/_components/NavPop.tsx`).
+  네이티브 `<dialog showModal()>`이라 포커스 트랩·Esc·포커스 복귀가 브라우저 기본 동작이다
+- 인트로 커버는 첫 방문에만. `layout.tsx`의 head 인라인 스크립트가 `sessionStorage`를 읽어
+  `<html data-intro="seen">`을 붙이고, 재생 여부는 CSS가 판단한다
+- 원고는 `src/constants/profile.ts`. 확정본은 Obsidian `portfolio-kcs/portfolio-자기소개.md`
+- 클라이언트 컴포넌트는 `NavPop` **하나뿐**. 나머지는 전부 서버 컴포넌트
 
 ## 상세 규칙
 

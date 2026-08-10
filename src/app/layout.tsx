@@ -1,29 +1,57 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
+import Link from "next/link";
+
+import { NavPop } from "@/app/_components/NavPop";
+import { PROFILE } from "@/constants/profile";
+
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Portfolio",
-  description: "포트폴리오",
+  title: {
+    default: `${PROFILE.name} — 포트폴리오`,
+    template: `%s — ${PROFILE.name}`,
+  },
+  description: PROFILE.tagline,
 };
+
+/**
+ * 첫 방문이 아니면 `<html data-intro="seen">`을 붙여 인트로를 건너뛴다.
+ * HTML 파싱 중 동기 실행되므로 첫 페인트 전에 반영된다 — 깜빡임도, 하이드레이션
+ * 불일치도 없다. `useEffect`로 하면 커버가 한 번 보였다 사라진다.
+ *
+ * 개발 모드에서는 Strict Mode 리마운트가 `<html>` 속성을 초기화해서
+ * 인트로가 다시 재생될 수 있다. 프로덕션 빌드에서는 발생하지 않는다.
+ */
+const INTRO_SKIP = `(function(){try{if(sessionStorage.getItem("intro"))document.documentElement.dataset.intro="seen";else sessionStorage.setItem("intro","1")}catch(e){}})()`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: INTRO_SKIP }} />
+      </head>
+      <body className="flex flex-col min-h-full bg-abyss text-silver">
+        <header className="fixed top-0 left-0 z-40 flex items-center justify-between w-full h-20 px-5 sm:px-8 lg:px-12">
+          <Link
+            href="/"
+            className="text-sm font-medium tracking-[0.12em] text-white"
+          >
+            KCS
+          </Link>
+          <NavPop />
+        </header>
+        {children}
+      </body>
     </html>
   );
 }
