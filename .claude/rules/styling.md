@@ -5,6 +5,8 @@ globs:
 ---
 ### Tailwind CSS v4
 
+**색상·타이포·간격 토큰의 실제 값은 `docs/design-reference.md`에 있다.** 여기는 작성 규칙만 다룬다.
+
 - **`tailwind.config.js`를 쓰지 않는다.** 전역 토큰은 `src/app/globals.css`의 `@theme inline`에 정의
 - 커스텀 색상은 CSS 변수로 정의하고 `@theme inline`으로 등록
 
