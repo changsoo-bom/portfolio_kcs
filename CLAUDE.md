@@ -41,15 +41,15 @@ Obsidian `portfolio-기획.md`의 "모든 화면 풀스크린 버거"는 이 결
 `.claude/rules/structure.md`의 `hooks/`, `lib/`와 `(auth)` 라우트 그룹은
 **미리 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
 
-| 경로 | 상태 |
+**라우트는 둘뿐이다.** 나머지는 전부 `/`의 섹션이고 네비는 앵커로 이동한다.
+
+| 경로 | 내용 |
 |------|------|
-| `/` | 히어로 + 인트로 커버 |
-| `/about` | Intro · 강점 · 약점 |
-| `/experience` | 경력 2개 + 성장 축 |
-| `/work` | 프로젝트 5개 (`order` 순 — 시간순 아님) |
-| `/tech` | 기술 8개 |
-| `/how-i-work` | AI Workflow 5단계 + Build Process |
-| `/contact` | 이메일 · GitHub (`mailto:`, 폼 없음) |
+| `/` | 히어로 + `#about` `#experience` `#work` `#tech` + AI 티저 + `#contact` — 약 8화면 |
+| `/how-i-work` | AI-ASSISTED DEVELOPMENT — Workflow 5단계 + Build Process |
+
+섹션 본문은 `components/home/*Section.tsx` 다섯 개다. `page.tsx`는 조립만 한다.
+AI만 라우트를 따로 준 이유는 분량이 커서다.
 
 `/work/[id]` 상세는 **아직 만들지 않았다** — Overview·Challenge·Approach가 채워진 프로젝트가
 3개 이상일 때 만든다(기획 §라우트 구조). 프로젝트 5개 중 4개의 `period`가 비어 있다.

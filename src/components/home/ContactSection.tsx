@@ -1,12 +1,5 @@
-import type { Metadata } from "next";
-
-import { PageHeader } from "@/components/common/PageHeader";
+import { SectionHead } from "@/components/common/SectionHead";
 import { COPY, PROFILE } from "@/constants/profile";
-
-export const metadata: Metadata = {
-  title: "Contact",
-  description: COPY.contact.lead,
-};
 
 /**
  * 연락 폼을 두지 않는다 — `mailto:`로 시작한다 (portfolio-기획 §결정해야 할 것).
@@ -17,17 +10,17 @@ const CHANNELS = [
   { label: "GitHub", value: "changsoo-bom", href: PROFILE.github },
 ] as const;
 
-export default function ContactPage() {
+export function ContactSection() {
   return (
-    <>
-      <PageHeader
-        no="06"
+    <section id="contact" className="scroll-mt-24 pt-32 pb-40 md:pt-40">
+      <SectionHead
+        no="05"
         label="Contact"
         title="연락처"
         lead={COPY.contact.lead}
       />
 
-      <ul>
+      <ul className="pt-8">
         {CHANNELS.map((c) => {
           const external = c.href.startsWith("http");
 
@@ -56,6 +49,6 @@ export default function ContactPage() {
           );
         })}
       </ul>
-    </>
+    </section>
   );
 }

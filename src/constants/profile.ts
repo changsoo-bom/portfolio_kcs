@@ -14,13 +14,17 @@ export const PROFILE = {
   // 전화번호는 넣지 않는다. 크롤러가 수집한다 — 이력서에만 (자기소개 §7)
 } as const;
 
+/**
+ * AI를 뺀 나머지는 전부 `/`의 섹션이다. 앵커로 이동한다.
+ * AI만 분량이 커서 독립 라우트를 준다.
+ */
 export const NAV_ITEMS = [
-  { no: "01", label: "ABOUT", href: "/about" },
-  { no: "02", label: "EXPERIENCE", href: "/experience" },
-  { no: "03", label: "PROJECTS", href: "/work" },
-  { no: "04", label: "TECH", href: "/tech" },
-  { no: "05", label: "HOW I WORK", href: "/how-i-work" },
-  { no: "06", label: "CONTACT", href: "/contact" },
+  { no: "01", label: "ABOUT", href: "/#about" },
+  { no: "02", label: "EXPERIENCE", href: "/#experience" },
+  { no: "03", label: "WORK", href: "/#work" },
+  { no: "04", label: "TECH", href: "/#tech" },
+  { no: "05", label: "AI", href: "/how-i-work" },
+  { no: "06", label: "CONTACT", href: "/#contact" },
 ] as const;
 
 /** 페이지별 본문. 배열 한 칸이 한 문단이다. */

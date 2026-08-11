@@ -31,31 +31,31 @@ export const AI_WORKFLOW = [
     no: "01",
     stage: "PLAN",
     tool: "ChatGPT",
-    purpose: "기획 · 아이디어 · 방향성 정리",
+    purpose: "기획 / 아이디어 / 요구사항",
   },
   {
     no: "02",
     stage: "ORGANIZE",
     tool: "Obsidian + Claude",
-    purpose: "기획 · 프로젝트 · 개발 내용 구조화",
+    purpose: "정보 구조화 / 문서화",
   },
   {
     no: "03",
     stage: "DESIGN",
     tool: "Google Stitch",
-    purpose: "웹 디자인 · UI 방향 정의",
+    purpose: "UI / UX / Visual Design",
   },
   {
     no: "04",
     stage: "BUILD",
     tool: "Claude Code",
-    purpose: "코드 Flow 제작 및 프론트엔드 구현",
+    purpose: "Next.js / TypeScript / React",
   },
   {
     no: "05",
     stage: "REVIEW",
     tool: "Codex",
-    purpose: "코드 리뷰 · 문제점 검토 · 개선",
+    purpose: "Code Review / Validation",
   },
 ] as const;
 

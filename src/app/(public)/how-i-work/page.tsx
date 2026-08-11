@@ -14,9 +14,9 @@ export default function HowIWorkPage() {
     <>
       <PageHeader
         no="05"
-        label="How I Work"
-        title="AI를 개발 과정에 어떻게 배치하는가"
-        lead="I don't ask AI to build everything. I design the workflow around it."
+        label="AI-Assisted Development"
+        title="I don't ask AI to build everything. I design the workflow around it."
+        lead="AI를 개발 과정 어디에 배치하고, 그 결과물을 어떻게 검증하는가."
       />
 
       <section className="reveal py-16 border-b border-hairline">
