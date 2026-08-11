@@ -157,10 +157,37 @@ html {
   transform: scaleX(0);
 }
 
+@keyframes header-bg-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+  헤더 배경. 다크 히어로 위에서는 투명하고, 본문에 들어서면서 밝아진다.
+  히어로 한 화면을 지나는 동안 채워진다 — 스타필드의 스크롤 기준과 같다.
+
+  미지원 브라우저에서는 opacity 1로 남아 항상 보인다. 배경이 늘 있는 편이
+  없는 것보다 안전하다(본문 텍스트가 헤더 뒤로 비치지 않는다).
+*/
+.header-bg {
+  opacity: 1;
+}
+
 @supports (animation-timeline: scroll()) {
   .scroll-progress {
     animation: progress linear both;
     animation-timeline: scroll(root block);
+  }
+
+  .header-bg {
+    opacity: 0;
+    animation: header-bg-in linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 100vh;
   }
 }
 

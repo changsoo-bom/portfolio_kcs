@@ -46,13 +46,23 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: INTRO_SKIP }} />
       </head>
       <body className="flex flex-col min-h-full bg-surface text-ink">
-        {/* 헤어라인 + 블러. 배경이 비치되 본문과 경계는 남는다 */}
-        <header className="fixed top-0 left-0 z-40 w-full border-b border-hairline bg-surface/80 backdrop-blur-md">
-          <div className="flex items-center justify-between w-full max-w-[1280px] h-20 mx-auto px-5 sm:px-8 lg:px-16">
-            <Link
-              href="/"
-              className="text-xl font-bold tracking-tighter text-ink"
-            >
+        {/*
+          `mix-blend-mode: difference`로 배경에 따라 색이 뒤집힌다 —
+          다크 히어로 위에서는 흰 글씨, 라이트 본문에서는 검은 글씨.
+          스크롤 위치를 JS로 감지해 클래스를 갈아끼우지 않아도 된다.
+
+          그래서 내용물은 전부 흰색으로 둔다. 배경·보더는 두지 않는다 —
+          blend가 배경까지 반전시키면 경계가 지저분해진다.
+        */}
+        <header className="fixed top-0 left-0 z-40 w-full">
+          {/* 배경만 따로. 히어로를 지나면서 밝아진다 */}
+          <div
+            aria-hidden="true"
+            className="header-bg absolute inset-0 border-b border-hairline bg-surface/80 backdrop-blur-md"
+          />
+
+          <div className="relative flex items-center justify-between w-full max-w-[1280px] h-20 mx-auto px-5 text-white mix-blend-difference sm:px-8 lg:px-16">
+            <Link href="/" className="text-xl font-bold tracking-tighter">
               {PROFILE.name}
             </Link>
             <SiteNav />
@@ -61,7 +71,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {/* 스크롤 진행 바. CSS scroll timeline이라 JS가 없다 */}
           <div
             aria-hidden="true"
-            className="scroll-progress absolute bottom-0 left-0 w-full h-px bg-ink"
+            className="scroll-progress absolute bottom-0 left-0 w-full h-px bg-white"
           />
         </header>
         {children}

@@ -13,6 +13,8 @@
 - 패키지 매니저 **pnpm**
 
 - **anime.js 4.5** — 인트로 타임라인 전용. 스크롤 애니메이션은 CSS가 맡는다
+- **three 0.143.0** — 히어로 배경 스타필드 전용. **버전을 올리지 않는다** —
+  `WebGL1Renderer`가 그 뒤로 제거됐고 addon 경로도 `three/addons`로 바뀐다
 
 Zustand · TanStack Query · Zod · Prisma는 **아직 설치하지 않았다.**
 `.claude/rules/state.md`의 판단 흐름에서 실제로 필요해진 시점에 추가한다.
@@ -71,7 +73,13 @@ AI만 라우트를 따로 준 이유는 분량이 커서다.
   네 단계가 물려 있어 CSS 키프레임 네 벌보다 타임라인 하나가 읽기 쉽다
 - **스크롤 애니메이션은 anime.js를 쓰지 않는다.** CSS `animation-timeline`이 같은 일을 하는데
   JS가 0줄이고 서버 컴포넌트를 클라이언트로 바꾸지 않아도 된다
-- 클라이언트 컴포넌트는 `SiteNav` · `IntroCover` **둘뿐**. 나머지는 전부 서버 컴포넌트
+- 히어로는 **다크 구간**이다 — 뒤에 `Starfield`(three.js)가 깔린다.
+  본문(`main`)이 `bg-surface`로 덮으면서 라이트로 돌아온다.
+  스타필드는 히어로를 벗어나면 렌더 루프를 멈춘다
+- 헤더는 `mix-blend-difference` — 다크 히어로 위에서는 흰 글씨, 라이트 본문에서는 검은 글씨가
+  **자동으로** 된다. 스크롤 위치를 JS로 감지하지 않는다.
+  배경 레이어만 따로 두고 scroll timeline으로 밝아지게 했다
+- 클라이언트 컴포넌트는 `SiteNav` · `IntroCover` · `Starfield` **셋뿐**. 나머지는 전부 서버 컴포넌트
 
 ## 상세 규칙
 

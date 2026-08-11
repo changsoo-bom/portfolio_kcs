@@ -40,10 +40,11 @@ export function SiteNav() {
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
+                  // 부모 헤더가 mix-blend-difference라 색은 흰색 기준으로 잡는다
                   className={
                     active
-                      ? "pb-1 font-mono text-[13px] font-medium tracking-[0.12em] text-ink border-b-2 border-ink"
-                      : "pb-1 font-mono text-[13px] font-medium tracking-[0.12em] text-muted transition-colors hover:text-ink"
+                      ? "pb-1 font-mono text-[13px] font-medium tracking-[0.12em] border-b-2 border-current"
+                      : "pb-1 font-mono text-[13px] font-medium tracking-[0.12em] opacity-60 transition-opacity hover:opacity-100"
                   }
                 >
                   {item.label}
@@ -62,14 +63,15 @@ export function SiteNav() {
         aria-label="메뉴 열기"
         className="flex flex-col items-end justify-center gap-1.5 w-11 h-11 -mr-2 cursor-pointer lg:hidden"
       >
-        <span className="block w-7 h-px bg-ink" />
-        <span className="block w-5 h-px bg-ink" />
+        <span className="block w-7 h-px bg-current" />
+        <span className="block w-5 h-px bg-current" />
       </button>
 
       <dialog
         ref={dialogRef}
         aria-label="사이트 메뉴"
-        className="w-screen max-w-none h-dvh max-h-none m-0 p-0 bg-surface text-ink backdrop:bg-ink/40"
+        // 헤더의 mix-blend-difference를 물려받지 않게 끊는다
+        className="w-screen max-w-none h-dvh max-h-none m-0 p-0 bg-surface text-ink mix-blend-normal backdrop:bg-ink/40"
       >
         <div className="flex flex-col h-full px-5 py-6 sm:px-8">
           <div className="flex justify-end">
