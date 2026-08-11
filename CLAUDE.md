@@ -17,7 +17,21 @@ Zustand · TanStack Query · Zod · Prisma는 **아직 설치하지 않았다.**
 
 ## 현재 상태
 
-메인 페이지 뼈대까지 만들었다. 디자인은 `docs/design-reference.md`(Auros, 다크 전용) 기준.
+> **지금 `src/`의 코드는 전부 임시 뼈대다.** 원고도 디자인도 확정 전에 만든 것이라
+> 확정본이 나오면 갈아엎는다. 새 기능을 여기에 쌓지 않는다.
+
+**기준 문서는 Obsidian `portfolio-kcs/frontend_portfolio_claude_code_prompt.md`(작업 지시서)다.**
+이 파일과 지시서가 어긋나면 지시서가 이긴다.
+
+- 콘텐츠 원본 — Obsidian `portfolio-kcs/` (Profile 3 · Projects 5 · Tech 8 · Website 3)
+- 구현 결정 — `portfolio-kcs/05_Website/portfolio-기획.md`
+- 라우트·섹션 구조 — `portfolio-kcs/05_Website/Sitemap.md`
+
+**현재 단계는 지시서 §22 — 웹사이트 코드를 작성하지 않는다.**
+Obsidian TODO를 채우고 → Google Stitch 디자인 → 그다음 구현이다.
+
+디자인은 **미확정**이다. `docs/design-reference.md`(Auros, 다크 전용)는 **보관**이며,
+`globals.css`에 들어간 토큰도 임시다. Stitch 결과와 비교해 결정한다.
 
 `.claude/rules/structure.md`의 나머지 폴더(`components/`, `hooks/`, `lib/`, `types/`)와
 `(auth)` 라우트 그룹은 **미리 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
