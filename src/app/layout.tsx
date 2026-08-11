@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 
 import { NavPop } from "@/app/_components/NavPop";
@@ -12,12 +12,17 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono-jetbrains",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: {
     default: `${PROFILE.name} — 포트폴리오`,
     template: `%s — ${PROFILE.name}`,
   },
-  description: PROFILE.tagline,
+  description: `${PROFILE.role}. ${PROFILE.tagline}`,
 };
 
 /**
@@ -34,19 +39,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
-      className={`${inter.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: INTRO_SKIP }} />
       </head>
-      <body className="flex flex-col min-h-full bg-abyss text-silver">
-        <header className="fixed top-0 left-0 z-40 flex items-center justify-between w-full h-20 px-5 sm:px-8 lg:px-12">
+      <body className="flex flex-col min-h-full bg-surface text-ink">
+        <header className="fixed top-0 left-0 z-40 flex items-center justify-between w-full h-20 px-5 sm:px-8 lg:px-16">
           <Link
             href="/"
-            className="text-sm font-medium tracking-[0.12em] text-white"
+            className="font-mono text-sm font-bold tracking-tighter text-ink"
           >
-            KCS
+            {PROFILE.name}
           </Link>
           <NavPop />
         </header>

@@ -1,35 +1,55 @@
 import type { Metadata } from "next";
 
-import { PROFILE } from "@/constants/profile";
+import { PageHeader } from "@/components/common/PageHeader";
+import { COPY, PROFILE } from "@/constants/profile";
 
 export const metadata: Metadata = {
   title: "Contact",
+  description: COPY.contact.lead,
 };
+
+/**
+ * 연락 폼을 두지 않는다 — `mailto:`로 시작한다 (portfolio-기획 §결정해야 할 것).
+ * 전화번호도 넣지 않는다. 크롤러가 수집한다 (자기소개 §7).
+ */
+const CHANNELS = [
+  { label: "Email", value: PROFILE.email, href: `mailto:${PROFILE.email}` },
+  { label: "GitHub", value: "changsoo-bom", href: PROFILE.github },
+] as const;
 
 export default function ContactPage() {
   return (
-    <main className="flex flex-col flex-1 justify-center w-full max-w-[1440px] mx-auto px-5 pt-20 pb-16 sm:px-8 lg:px-12">
-      <div className="w-full px-6 py-16 bg-deep rounded-2xl sm:px-10 sm:py-24">
-        <p className="text-[10px] uppercase tracking-[0.15em] text-silver">
-          Contact
-        </p>
-        <h1 className="mt-6 text-[clamp(2rem,6vw,3rem)] font-medium leading-none tracking-[-0.04em] text-white">
-          연락
-        </h1>
-        <div className="flex flex-col gap-2 mt-8 text-base text-silver">
-          <a href={`mailto:${PROFILE.email}`} className="py-1">
-            {PROFILE.email}
-          </a>
-          <a
-            href={PROFILE.github}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="py-1"
-          >
-            GitHub ↗
-          </a>
-        </div>
-      </div>
-    </main>
+    <>
+      <PageHeader
+        no="06"
+        label="Contact"
+        title="연락처"
+        lead={COPY.contact.lead}
+      />
+
+      <ul>
+        {CHANNELS.map((c) => {
+          const external = c.href.startsWith("http");
+
+          return (
+            <li key={c.label} className="border-b border-hairline">
+              <a
+                href={c.href}
+                {...(external
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+                className="grid grid-cols-1 gap-2 py-8 transition-colors md:grid-cols-12 md:gap-6 hover:bg-surface-low"
+              >
+                <span className="label md:col-span-4">{c.label}</span>
+                <span className="text-xl tracking-[-0.01em] text-ink md:col-span-8">
+                  {c.value}
+                  {external ? " ↗" : ""}
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }

@@ -1,22 +1,18 @@
 @import "tailwindcss";
 
-/* 토큰 원본: docs/design-reference.md (Auros — Abyssal terminal) */
+/* 토큰 원본: docs/design-reference.md (Google Stitch 산출본 — 라이트 에디토리얼) */
 :root {
-  --liquid-abyss: #012624;
-  --liquid-deep: #011d1c;
-  --liquid-kelp: #003734;
-  --liquid-mist: #edfffe;
-  --silver-mist: #bbc7c6;
-  --slate-deep: #707777;
-  --lavender-phosphor: #fde9ff;
+  --surface: #faf9f9;
+  --surface-low: #f4f3f3;
+  --surface-card: #fdfcfb;
+  --ink: #1b1c1c;
+  --ink-muted: #444748;
+  --ink-label: #5e5e5e;
+  --accent: #4a5568;
 
-  --gradient-aurora: linear-gradient(
-    90deg,
-    rgb(203, 255, 252) 0%,
-    rgb(237, 255, 254) 26.25%,
-    rgb(255, 253, 250) 47.57%,
-    rgb(250, 209, 255) 88.96%
-  );
+  /* 경계는 그림자가 아니라 헤어라인으로 만든다 */
+  --hairline: rgba(142, 142, 142, 0.2);
+  --divider: rgba(142, 142, 142, 0.3);
 
   /* 인트로 커버가 걷힌 뒤 히어로가 등장하기까지의 대기 */
   --hero-delay: 1.15s;
@@ -28,25 +24,44 @@
 }
 
 @theme inline {
-  --color-abyss: var(--liquid-abyss);
-  --color-deep: var(--liquid-deep);
-  --color-kelp: var(--liquid-kelp);
-  --color-mist: var(--liquid-mist);
-  --color-silver: var(--silver-mist);
-  --color-slate: var(--slate-deep);
-  --color-phosphor: var(--lavender-phosphor);
+  --color-surface: var(--surface);
+  --color-surface-low: var(--surface-low);
+  --color-card: var(--surface-card);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-label: var(--ink-label);
+  --color-accent: var(--accent);
+  --color-hairline: var(--hairline);
+  --color-divider: var(--divider);
+
   --font-sans: var(--font-inter);
+  --font-mono: var(--font-mono-jetbrains);
+
+  /* 최대 반경이 12px다. 알약 버튼을 만들지 않는다 */
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
 }
 
 body {
-  background: var(--liquid-abyss);
-  color: var(--silver-mist);
+  background: var(--surface);
+  color: var(--ink);
   font-family: var(--font-sans);
 }
 
-/* 레퍼런스의 유일한 그라디언트 사용처 — CTA 버튼 하나 */
-.btn-aurora {
-  background: var(--gradient-aurora);
+/*
+  계측 라벨 — 연도·상태·기술명·섹션 번호.
+  모노 + 대문자 + 넓은 트래킹이 이 디자인의 성격을 만든다.
+*/
+.label {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-label);
 }
 
 @keyframes rise {
@@ -130,6 +145,12 @@ dialog[open] .nav-item:nth-child(3) {
 }
 dialog[open] .nav-item:nth-child(4) {
   animation-delay: 0.23s;
+}
+dialog[open] .nav-item:nth-child(5) {
+  animation-delay: 0.29s;
+}
+dialog[open] .nav-item:nth-child(6) {
+  animation-delay: 0.35s;
 }
 
 @media (prefers-reduced-motion: reduce) {

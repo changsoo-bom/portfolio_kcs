@@ -1,21 +1,37 @@
 import type { Metadata } from "next";
 
+import { PageHeader } from "@/components/common/PageHeader";
+import { ProjectCard } from "@/components/project/card/ProjectCard";
+import { PROJECTS } from "@/constants/projects";
+
 export const metadata: Metadata = {
-  title: "Work",
+  title: "Projects",
+  description: "프론트엔드 프로젝트 5개 — 현재 역량에서 과거 성장 과정 순.",
 };
 
 export default function WorkPage() {
+  // 시간순이 아니다. order가 곧 표시 순서다 (Sitemap §프로젝트 표시 순서)
+  const projects = [...PROJECTS].sort((a, b) => a.order - b.order);
+
   return (
-    <main className="flex flex-col flex-1 justify-center w-full max-w-[1440px] mx-auto px-5 pt-20 pb-16 sm:px-8 lg:px-12">
-      <p className="text-[10px] uppercase tracking-[0.15em] text-silver">
-        Work
+    <>
+      <PageHeader
+        no="03"
+        label="Projects"
+        title="프로젝트"
+        lead="시간순이 아니라 현재 역량에서 과거 성장 과정 순으로 놓았습니다."
+      />
+
+      <div>
+        {projects.map((p) => (
+          <ProjectCard key={p.id} project={p} />
+        ))}
+      </div>
+
+      <p className="mt-10 font-mono text-sm leading-[1.6] text-label">
+        🔒 RESTRICTED — VPN·사내 환경 등 접근 제한
+        <br />◐ DEVELOPMENT — 실제 적용 전
       </p>
-      <h1 className="mt-6 text-[clamp(2rem,6vw,3rem)] font-medium leading-none tracking-[-0.04em] text-white">
-        작업물
-      </h1>
-      <p className="mt-5 max-w-[600px] text-base leading-[1.4] text-silver">
-        원고 준비 중.
-      </p>
-    </main>
+    </>
   );
 }
