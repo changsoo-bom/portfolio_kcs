@@ -1,281 +1,417 @@
-# Auros — Style Reference
+# Style Reference — Google Stitch 산출본
 
-> Abyssal terminal with bioluminescent data orbs
+> Editorial laboratory — 흑백 활자 중심의 라이트 캔버스
 
-**Theme:** dark
+**Theme:** light (다크 대응 없음)
+**출처:** Google Stitch MCP, 2026-08-11 생성. 화면 9종 + 디자인 시스템 1종
+**이전 레퍼런스:** Auros(다크 전용)는 커밋 `5448a13` 이전 히스토리에 있다. 이 문서가 대체한다.
 
-이 프로젝트의 디자인 방향 레퍼런스. 토큰 값의 원본은 여기이고, 실제 적용은 `src/app/globals.css`의 `@theme inline`에 넣는다.
+토큰 값의 원본은 여기이고, 실제 적용은 `src/app/globals.css`의 `@theme inline`에 넣는다.
 작성 규칙(클래스 순서, `tailwind.config.js` 미사용 등)은 [`.claude/rules/styling.md`](../.claude/rules/styling.md)를 따른다.
-
-## ⚠️ 적용 전 확인할 것
-
-| 항목 | 레퍼런스 | 이 프로젝트 | 처리 |
-|---|---|---|---|
-| 폰트 | **Matter** (유료) | Geist / Geist Mono | `next/font/google`의 **Inter** 또는 **DM Sans**로 대체 — 레퍼런스가 명시한 substitute |
-| 다크모드 | **다크 전용** | `prefers-color-scheme` 기반 | 이 팔레트엔 라이트 대응이 없다. **다크 고정으로 갈지** 결정 필요 |
-| 그라디언트 | Aurora / Bioluminescent | — | CTA 버튼 1개에만. 배경·텍스트 금지(아래 Don't) |
 
 ---
 
-Auros operates as an abyssal fintech terminal: near-black teal canvas with bioluminescent data orbs and teal-to-pink light gradients that suggest depth, liquidity, and flow. The interface is sparse and cinematic, relying on a single custom display face (Matter) at medium weight with aggressive negative tracking to create scale without shouting. Color is rationed — achromatic whites and silvers carry almost all content, while the chromatic palette is reserved for atmospheric gradients, card surface differentiation, and one signature pill button that morphs from teal-cyan to lavender-pink. Cards float on subtle teal-tinted surface lifts (16px radius, no shadows) rather than using elevation, so the hierarchy reads as depth-of-water rather than shadow-on-paper. Components feel engineered and instrument-like: uppercase tracked labels, thin geometric arrow icons, large numerical stats in pale pink.
+## ⚠️ 적용 전 해결해야 할 것
+
+Stitch 산출물을 그대로 코드로 옮기면 안 되는 지점들. **순서대로 결정하고 나서 구현에 들어간다.**
+
+| # | 항목 | Stitch 산출물 | 이 프로젝트 | 처리 |
+|---|------|--------------|------------|------|
+| 1 | **네비게이션** | 데스크톱 `TopNavBar` + 모바일 버거 | **모든 화면 풀스크린 버거**(`NavPop`) | 정면 충돌. 둘 중 하나를 버린다 |
+| 2 | **라우트** | EXPLORE / WORK / STACK / ABOUT / CONTACT | `Sitemap.md`의 7개 | 이름·개수 대조 필요 |
+| 3 | **브랜드명** | `STUDIO.DEV` | 미확정 | **전부 자리표시.** 확정 전엔 코드에 박지 않는다 |
+| 4 | **다크모드** | 없음 (`darkMode:"class"`는 선언만, 다크 값이 라이트와 동일) | `prefers-color-scheme` 기반 | 라이트 고정으로 갈지 결정 |
+| 5 | **Tailwind** | v3 CDN + `tailwind.config` | **v4 `@theme inline`** | 아래 Quick Start로 변환 |
+| 6 | **폰트** | Google Fonts `<link>` | `next/font` | `@font-face`·CDN link 금지 |
+| 7 | **이미지** | `lh3.googleusercontent.com/aida-public/…` | — | Stitch 임시 URL. 만료된다. 실제 에셋 필요 |
+| 8 | **성과 수치** | "LCP 42% 개선", "개발 속도 3x" | — | **Stitch가 지어낸 값.** 검증 안 되면 삭제 |
+| 9 | **본문 카피** | 영문 위주, 일부 KR/EN 병기 | 원고 미확정 | Obsidian 확정본이 이긴다 |
+| 10 | **Three.js** | 히어로 파티클 2종 | — | 두 스니펫 모두 `const container` **중복 선언 → SyntaxError**. 그대로 쓰면 안 뜬다 |
+
+---
+
+## 성격
+
+흑백 활자가 화면을 지배한다. 색은 정보 위계에만 쓰이고 장식으로는 거의 등장하지 않는다.
+회색조 표면 스택(`#ffffff` → `#faf9f9` → `#f4f3f3` → `#efeded` → `#e9e8e8`)이 카드와 섹션을 가르고,
+그림자 대신 **1px 헤어라인 보더**(`rgba(142,142,142,0.2~0.3)`)가 경계를 만든다.
+
+두 서체가 역할을 나눈다 — Inter가 내용을, JetBrains Mono가 **계측 라벨**(연도·상태·기술스택·섹션 번호)을 맡는다.
+모노 라벨은 항상 대문자에 `0.05em` 트래킹이 붙어, 화면이 실험 기록지처럼 읽힌다.
+
+모서리는 거의 각져 있다. 가장 큰 반경이 12px이고 기본은 2px다. 알약 버튼도, 큰 라운드 카드도 없다.
+이미지는 기본적으로 `grayscale`이고 호버에서만 색이 돌아온다.
+
+---
 
 ## Tokens — Colors
 
+Material 3 계열 네이밍. **크로마가 거의 0인 회색조**이며, 유일한 유채색은 에러 계열과 tertiary(남색)다.
+
+### 핵심 (실제로 쓰이는 것)
+
 | Name | Value | Token | Role |
 |------|-------|-------|------|
-| Liquid Abyss | `#012624` | `--color-liquid-abyss` | Primary canvas — page background, header, hero, and the dominant dark-teal field. Establishes the deep-water atmosphere |
-| Liquid Deep | `#011d1c` | `--color-liquid-deep` | Recessed surface level — footer background and deeper card panels. Reads as a half-step darker than the canvas, creating a subtle depth gradient downward |
-| Liquid Kelp | `#003734` | `--color-liquid-kelp` | Raised card surface and primary button fill — the lifted surface that sits one step above the abyss. Used for feature cards, content panels, and the gradient button's origin point |
-| Liquid Mist | `#edfffe` | `--color-liquid-mist` | Cool-tinted off-white for emphasized body text, section labels, and warm-light typographic moments. Carries a barely-perceptible cyan whisper that ties body text to the teal atmosphere |
-| Platinum | `#ffffff` | `--color-platinum` | Pure white for headings, nav items, icon strokes, and high-contrast text. The dominant text color across all heading levels and the primary nav |
-| Silver Mist | `#bbc7c6` | `--color-silver-mist` | Secondary body text, muted descriptions, and link color in resting state. Carries a faint green undertone that harmonizes with the teal canvas |
-| Ash | `#f2f2f2` | `--color-ash` | Tertiary text for pull-quotes and testimonial copy. A neutral cool-gray fallback when Silver Mist's teal undertone is too colored |
-| Slate Deep | `#707777` | `--color-slate-deep` | Subtle surface tint for inactive or low-emphasis backgrounds. Sits between canvas and card for very low-elevation differentiation |
-| Lavender Phosphor | `#fde9ff` | `--color-lavender-phosphor` | Highlight color for large statistics, counter numbers, and emphasis figures. The pink end of the signature gradient — used sparingly as luminous punctuation on dark surfaces |
-| Bioluminescent Gradient | `linear-gradient(90deg, rgb(0, 130, 124) 0%, rgb(203, 255, 252) 100%)` | `--gradient-bioluminescent` | Signature button and UI gradient — linear sweep from teal-cyan through pale aqua into lavender-pink. The brand's signature chromatic gesture |
-| Aurora Gradient | `linear-gradient(90deg, rgb(203, 255, 252) 0%, rgb(237, 255, 254) 26.25%, rgb(255, 253, 250) 47.57%, rgb(250, 209, 255) 88.96%)` | `--gradient-aurora` | Supporting palette color for small decorative accents when the core palette needs contrast |
+| primary | `#000000` | `--color-primary` | 제목·강조 텍스트, 채워진 버튼 배경, 푸터 캔버스 |
+| on-primary | `#ffffff` | `--color-on-primary` | primary 위의 텍스트 |
+| background / surface | `#faf9f9` | `--color-background` | 페이지 캔버스 |
+| on-surface | `#1b1c1c` | `--color-on-surface` | 본문 기본 텍스트 |
+| on-surface-variant | `#444748` | `--color-on-surface-variant` | 보조 본문·설명 |
+| secondary | `#5e5e5e` | `--color-secondary` | 라벨·메타 텍스트 (모노 라벨의 기본색) |
+| outline | `#747878` | `--color-outline` | 보더 기준색. 실제로는 `/20`~`/30` 알파로만 씀 |
+| outline-variant | `#c4c7c7` | `--color-outline-variant` | 더 옅은 구분선 |
+
+### 표면 스택
+
+| Level | Token | Value | 쓰임 |
+|-------|-------|-------|------|
+| 0 | `surface-container-lowest` | `#ffffff` | 가장 밝은 패널 (아키텍처 플로우 박스) |
+| 1 | `background` / `surface` / `surface-bright` | `#faf9f9` | 페이지 캔버스 |
+| 2 | `surface-container-low` | `#f4f3f3` | 섹션 밴드, 리스트 행 호버 |
+| 3 | `surface-container` | `#efeded` | 코드 블록 배경 |
+| 4 | `surface-container-high` / `surface-variant` / `surface-container-highest` | `#e9e8e8` / `#e3e2e2` | 이미지 플레이스홀더 |
+| — | `surface-dim` | `#dbdad9` | 비활성 표면 |
+
+### 나머지 (선언은 됐으나 거의 안 쓰임)
+
+`primary-container #1c1b1b` · `on-primary-container #858383` · `primary-fixed #e5e2e1` · `primary-fixed-dim #c8c6c5` ·
+`on-primary-fixed #1c1b1b` · `on-primary-fixed-variant #474746` ·
+`secondary-container #e0dfdf` · `on-secondary-container #626362` · `secondary-fixed #e3e2e1` · `secondary-fixed-dim #c7c6c5` ·
+`on-secondary #ffffff` · `on-secondary-fixed #1a1c1c` · `on-secondary-fixed-variant #464746` ·
+`tertiary #000000` · `tertiary-container #111c2c` · `on-tertiary #ffffff` · `on-tertiary-container #798499` ·
+`tertiary-fixed #d8e3fa` · `tertiary-fixed-dim #bcc7dd` · `on-tertiary-fixed #111c2c` · `on-tertiary-fixed-variant #3c475a` ·
+`inverse-surface #2f3031` · `inverse-on-surface #f2f0f0` · `inverse-primary #c8c6c5` · `surface-tint #5f5e5e` ·
+`on-background #1b1c1c`
+
+**에러 계열:** `error #ba1a1a` · `on-error #ffffff` · `error-container #ffdad6` · `on-error-container #93000a`
+— 실제 사용처는 접근 제한 배지(HANASYS `RESTRICTED (VPN)`) 하나뿐이다.
+
+### 토큰 밖에서 하드코딩된 값
+
+Stitch가 토큰을 안 쓰고 직접 박아둔 것들. **정리해서 토큰으로 흡수할지 결정해야 한다.**
+
+| Value | 쓰임 |
+|-------|------|
+| `#FDFCFB` | 카드 배경, 일부 페이지의 `body` 배경 — `background`(`#faf9f9`)와 미묘하게 다르다 |
+| `#1A1A1A` | 버튼 배경 (`HIRE ME`), 타임라인 점 |
+| `#4A5568` | 버튼 호버, 카드 제목 호버, **Three.js 파티클 색**(`0x4A5568`) — 사실상 유일한 액센트 |
+| `rgba(142,142,142,0.3)` | `.editorial-divider` — 섹션 상단 구분선 |
+| `rgba(142,142,142,0.2)` | `.hairline-border` — 카드 테두리 |
+| `rgba(142,142,142,1)` | `.chip` 테두리 |
+
+---
 
 ## Tokens — Typography
 
-### Matter — Primary display and body face
+### Inter — 본문·제목
 
-`--font-matter`
+`--font-inter` · Weights 400 / 500 / 600 / 700 / 900
 
-Weight 500 for all headings (H1–H3) and oversized kinetic text (86–295px). Weight 400 for body and UI copy. Characterized by aggressive negative tracking on large sizes (-0.04em at 61px, -0.046em at 86px) and wide positive tracking on uppercase labels (0.08em at 20px, 0.12em at 12px, 0.15em at 10px). The medium-weight-only heading strategy is distinctive — no bold, no light — giving the type a uniform mechanical confidence.
+### JetBrains Mono — 계측 라벨·데이터
 
-- **Substitute:** Inter, DM Sans, or Satoshi for close geometric-grotesk match
-- **Weights:** 400, 500
-- **Sizes:** 10, 12, 13, 14, 16, 20, 24, 36, 61, 86, 96, 295px
-- **Line height:** 1.0, 1.3, 1.4, 1.5
-- **Letter spacing:** -0.046em at 86px, -0.04em at 61px, -0.02em at 24px, 0.08em uppercase at 20px, 0.12em uppercase at 12px, 0.15em uppercase at 10px
+`--font-jetbrains-mono` · Weights 400 / 500
 
-### Arial — Secondary fallback for interactive UI elements
-
-`--font-arial`
-
-Nav, buttons, hero micro-copy, footer. Only appears at 14px — a safe generic fallback where Matter isn't loaded, covering form labels, button text, and small utility copy.
-
-- **Substitute:** system-ui, -apple-system, sans-serif
-- **Weights:** 400
-- **Sizes:** 14px
-- **Line height:** 1.43
+라벨·연도·상태·기술스택 칩·섹션 번호(`01.`, `LAB / 02`)·코드 블록. **화면의 성격을 만드는 서체다.**
 
 ### Type Scale
 
-| Role | Size | Line Height | Letter Spacing | Token |
-|------|------|-------------|----------------|-------|
-| caption | 10px | 1.4 | 1.5px | `--text-caption` |
-| body | 16px | 1.4 | — | `--text-body` |
-| subheading | 24px | 1.3 | -0.48px | `--text-subheading` |
-| heading | 36px | 1 | — | `--text-heading` |
-| heading-lg | 61px | 1 | -2.44px | `--text-heading-lg` |
-| display | 96px | 1 | -3.84px | `--text-display` |
+| Role | Size | Line Height | Letter Spacing | Weight | Face |
+|------|------|-------------|----------------|--------|------|
+| `display` | 80px | 1.1 | -0.04em | 700 | Inter |
+| `headline-lg` | 48px | 1.2 | -0.02em | 600 | Inter |
+| `headline-lg-mobile` | 32px | 1.2 | -0.02em | 600 | Inter |
+| `headline-md` | 24px | 1.4 | -0.01em | 500 | Inter |
+| `body-lg` | 18px | 1.6 | — | 400 | Inter |
+| `body-sm` | 15px | 1.6 | — | 400 | Inter |
+| `mono-data` | 14px | 1.5 | — | 400 | JetBrains Mono |
+| `mono-label` | 13px | 1.2 | 0.05em | 500 | JetBrains Mono |
+
+**반응형:** `display`는 모바일에서 48px로 내린다 (`md:text-[80px] text-[48px]`).
+별도 `headline-lg-mobile` 토큰도 있지만 실제로는 `md:` 분기로 처리한 곳이 더 많다 — **하나로 통일해야 한다.**
+
+**모노 라벨은 항상 `uppercase` + `tracking-widest`가 덧붙는다.** 토큰의 `0.05em` 위에 유틸리티가 한 번 더 얹히는 구조라, 실측 트래킹은 더 넓다.
+
+---
 
 ## Tokens — Spacing & Shapes
 
-**Base unit:** 4px · **Density:** spacious
+**Base unit:** 8px
 
-### Spacing Scale
-
-`12` `16` `20` `24` `28` `32` `36` `40` `48` `64` `80` `120` `140` `160` `164` (px) — 토큰명 `--spacing-{값}`
+| Token | Value | 쓰임 |
+|-------|-------|------|
+| `base` | 8px | 기본 단위, 네비 세로 패딩 |
+| `gutter` | 24px | 그리드 거터, 요소 간격 |
+| `margin-mobile` | 20px | 모바일 좌우 여백 |
+| `margin-desktop` | 64px | 데스크톱 좌우 여백 |
+| `section-gap` | 120px | 섹션 사이 세로 간격 |
+| `container-max` | 1280px | 콘텐츠 최대 폭 |
 
 ### Border Radius
 
-| Element | Value |
-|---------|-------|
-| cards | 16px |
-| small | 6px |
-| buttons | 6px |
+| Token | Value |
+|-------|-------|
+| `DEFAULT` | 2px (`0.125rem`) |
+| `lg` | 4px (`0.25rem`) |
+| `xl` | 8px (`0.5rem`) |
+| `full` | 12px (`0.75rem`) |
 
-### Layout
+**`full`이 12px다 — 알약이 아니다.** 각진 인상이 이 스케일에서 나온다.
 
-- **Page max-width:** 1440px
-- **Section gap:** 68px
-- **Card padding:** 36–48px
-- **Element gap:** 20px
+### Grid
+
+| Breakpoint | Columns | Gutter | Margin |
+|------------|---------|--------|--------|
+| mobile | 4 | 24px | 20px |
+| `md:` 768px | 8 | 24px | 64px |
+| `lg:` 1024px | 12 | 24px | 64px (max 1280px, 중앙 정렬) |
+
+실제 마크업은 `grid-cols-4 md:grid-cols-12`로 8컬럼 단계를 건너뛴 곳이 많다. **태블릿 레이아웃은 검증이 안 됐다.**
+
+---
 
 ## Components
 
-### Gradient Pill Button — Primary CTA
-Filled button with the aurora gradient background (cyan → white → pink). 6px border-radius, 32px vertical padding, 22px horizontal padding. Text in dark color (`#222222`) at 14px Arial, uppercase. Used for the most important action on each section. The gradient direction is horizontal, creating a sunrise effect.
+### TopNavBar — 사이트 헤더
+`fixed`/`sticky top-0`, `bg-surface/80 backdrop-blur-md`, 하단 `border-b border-outline/20`.
+좌측 워드마크(`headline-md` 700, `tracking-tighter`), 중앙 링크 5개(`mono-label` 대문자 `tracking-widest`), 우측 CTA 버튼.
+활성 링크는 `border-b-2 border-primary pb-1`. 모바일에서는 2줄 버거 아이콘으로 접힌다.
+> ⚠️ 프로젝트 규칙은 **모든 화면 풀스크린 버거**다. 위 표 #1 참조.
 
-### Ghost Navigation Link — Nav item
-Transparent background, no border, uppercase text at 12px Matter weight 400 with 0.12em letter-spacing. White in active state, silver (`#bbc7c6`) for inactive. No padding — sits inline with tight 16px column-gap between items.
+### Intro Loader — 첫 진입 커버
+`fixed inset-0 z-[100]`, 배경에 Three.js 파티클. 중앙에 모노 라벨이 400ms 간격으로
+`INITIALIZING… → EXPLORING… → BUILDING… → EVOLVING…`으로 바뀌고, 그 아래 1px 진행 바가 2000ms에 걸쳐 찬다.
+2초 뒤 커버가 위로 걷히고(`translate-y-full`, 1.2s `cubic-bezier(.77,0,.175,1)`),
+600ms 지점에서 히어로 제목이 **글자당 35ms**로 순차 등장, 1800ms에 네비가 페이드인.
+> 현재 구현(`intro-cover` + `sessionStorage`)과 타이밍·연출이 다르다. 대조 필요.
 
-### Surface Card — Content container
-Card with `#003734` (Liquid Kelp) background, 16px border-radius, 36px padding all sides. No shadow, no border. Headings at 36px Matter 500 white, body at 16px Matter 400 silver.
+### Hero — 홈 히어로
+`min-h-[921px]`, 12컬럼 중 10컬럼 차지. 모노 데이터 아이브로우 → `display` 제목 → 하단 구분선 아래 "CURRENTLY EXPLORING" 블록.
+우측 끝에 `north_east` 아이콘이 `animate-pulse`.
 
-### Recessed Card — Deep content panel
-Card with `#011d1c` (Liquid Deep) background, 16px border-radius, 120px vertical padding. Creates a sunken well effect — the deepest UI surface, used for footer-adjacent content blocks and CTA panels with maximum breathing room.
+### Case Study Header — 프로젝트 상세 헤더
+`mono-label` 아이브로우(`Case Study — 2024`) → `display` 제목(`01 — HANWHA Q.PARTNERS`) →
+상단 구분선 아래 메타 3~4열(ROLE / TIMELINE / STATUS / TECH STACK).
 
-### Feature Row Card — Service listing
-Transparent background card with 16px radius and 48px vertical / 36px horizontal padding. Contains a heading, body description, and a small square arrow icon button (32×32, 6px radius, dark teal fill with white arrow).
+### Tech Chip — 기술 스택 칩
+`px-3 py-1`, 1px 헤어라인 보더, `rounded` (2px), `mono-label`. 배경 투명. 채워진 배지가 아니다.
 
-### Arrow Icon Button — Inline link trigger
-32×32 square button, 6px border-radius, semi-transparent dark teal fill (`rgba(3, 81, 75, 0.5)`). Contains a white diagonal arrow (↗) icon. Always positioned to the right of a card title as a 'go to' trigger.
+### Sticky Section Label — 섹션 번호
+`01. Technical Overview` 형태의 `mono-label` 대문자를 좌측 4컬럼에 `sticky top-32`로 고정하고,
+우측 8컬럼에 본문이 흐른다. 케이스 스터디 본문의 기본 골격.
 
-### Uppercase Section Label — Eyebrow / kicker
-12px or 20px Matter weight 500, uppercase, letter-spacing 0.08–0.12em, silver (`#bbc7c6`) or mist (`#edfffe`). Appears above section headings as a categorical label. Wide tracking is signature — it reads as technical instrumentation labeling.
+### Stat Card — 성과 카드
+`aspect-square`, `bg-[#FDFCFB]`, 헤어라인 보더, `p-8`. 상단에 `mono-label` 지표명,
+하단에 `display` 크기 숫자 + `body-sm` 설명. 호버 시 `bg-surface-variant/30`.
+> ⚠️ Stitch가 채운 수치(42%, 3x)는 근거 없음. 표 #8.
 
-### Hero Headline — Page-level title
-61–96px Matter weight 500, line-height 1.0, letter-spacing -0.04em, white. Fluid sizing via `clamp(2.5rem, ..., 3.8rem)` for H1 and `clamp(2.1rem, ..., 3rem)` for H2. Tight tracking compensates for the geometric letterforms at scale.
+### Archive Row — 인덱스 리스트 행
+12컬럼 테이블 행: `No.`(모노) / 프로젝트명(`headline-md`) / 역할(`body-sm`) / 연도(모노) / 상태 배지(우측 정렬).
+호버 시 행 배경 `#f4f3f3`, 번호 색이 `outline → primary`로. 모바일에서는 4컬럼으로 접힌다.
 
-### Oversized Kinetic Text — Section-spanning display
-86–295px Matter weight 500 at line-height 1.0, letter-spacing -0.046em. Used for massive section markers. The extreme size creates a kinetic, almost physical presence — text as environmental element.
+### Status Badge — 상태 배지
+`px-2 py-1`, 헤어라인 보더, `rounded`(2px), `mono-label` 10px. `LIVE` / `RESTRICTED` / `DEPRECATED` / `OPEN SOURCE`.
 
-### Statistic Counter — Metric display
-Large number in lavender-phosphor pink (`#fde9ff`) with label below in mist (`#edfffe`) or silver at 13px uppercase tracked. The pink-on-teal combination is the signature emphasis treatment.
+### Lab Card — 실험 카드
+`aspect-[4/3]` 이미지가 `grayscale`로 시작해 호버 시 `grayscale-0 + scale-105` (700ms).
+아래 구분선 위에 `LAB / 01` + 상태·빌드 라벨, 그 밑 `headline-md` 제목(호버 시 `#4A5568`).
+카드마다 `md:mt-16`으로 세로 오프셋을 줘 비대칭 배치.
 
-### Navigation Bar — Site header
-Full-width header, transparent background, ~80px height. Logo left, nav links centered, CTA button right. 6px radius on the CTA. Items separated by 16–24px gaps.
+### Filter Button — 스택 필터
+`px-4 py-2`, 헤어라인 보더, `rounded`(2px), `mono-label` 대문자.
+활성 시 `bg-#1a1a1a text-white border-#1a1a1a`. 비활성 카드는 `opacity-.3 + grayscale(100%)`로 죽인다(숨기지 않는다).
 
-### Geometric Molecule Illustration — Decorative graphic
-Flat geometric pattern of circles and connector shapes in silver/white, positioned as right-column decoration. No fill complexity — just white circles and thin connector lines forming an abstract molecular/network diagram.
+### Timeline — 연도별 진화
+중앙 1px 세로선(모바일은 좌측 20px). 각 항목은 12컬럼을 좌우로 갈라 배치하고 좌우가 번갈아 뒤집힌다.
+현재 시점 점만 `bg-primary`, 과거는 `bg-outline`. 점은 `border-4 border-surface`로 선을 끊는다.
 
-### Particle Sphere Visual — Hero animation
-3D particle sphere rendered in teal-cyan and white dots, rotating in the hero or section transition. The particles pick up the canvas teal and the accent pink, creating a bioluminescent data orb effect. The defining brand visual.
+### Device Frame — 반응형 쇼케이스
+Mobile 280×580 / Tablet 380×500 / Desktop 가변×420. `rounded-xl`(8px) + 헤어라인 보더.
+내부는 실제 스크린샷이 아니라 **회색 블록 와이어프레임**(`bg-outline/10`, `bg-outline/5`)이다.
+
+### Footer — 사이트 푸터
+두 종류가 섞여 있다. **하나로 정해야 한다.**
+- **라이트형**: `bg-surface`, 상단 보더, `headline-lg` 900 워드마크 + 링크 4개
+- **다크형**: `bg-primary`(검정), `min-h-[614px]`, `display` 크기 워드마크가 하단 정렬.
+  링크 호버 시 `tracking-widest`로 벌어지는 500ms 트랜지션
+
+### Architecture Flow — 단계 다이어그램
+`bg-surface-container-low` 패널 안에 흰 박스 3개를 `arrow_forward` 아이콘으로 연결.
+데스크톱 가로, 모바일에서는 화살표가 `rotate-90` 되어 세로로.
+
+### Restricted Overlay — 접근 제한 표시
+배경 이미지 위에 `bg-surface/90 backdrop-blur-sm` 패널. `SYSTEM.RESTRICTED_ACCESS` 모노 제목,
+설명, 신호등 점 3개(첫 번째만 `bg-error`). 스크린샷을 못 넣는 프로젝트의 대체 표현.
+
+---
+
+## Motion
+
+| 대상 | 값 |
+|------|-----|
+| 링크·색상 전환 | 200~300ms |
+| 이미지 grayscale 해제 + scale | 700ms |
+| 인트로 커버 마스크업 | 1200ms `cubic-bezier(.77,0,.175,1)` |
+| 히어로 글자 등장 | 글자당 35ms 스태거, 각 700ms `cubic-bezier(.2,.6,.2,1)` |
+| 푸터 링크 트래킹 확장 | 500ms |
+| 카드 호버 scale | `scale-105`, 700ms |
+
+`prefers-reduced-motion` 대응이 **Stitch 산출물에 전혀 없다.** 구현 시 직접 넣는다.
+
+---
 
 ## Do's and Don'ts
 
 ### Do
-- Use only the teal-green surface stack (`#011d1c` → `#012624` → `#003734`) for background differentiation — never introduce gray, black, or blue surfaces
-- Reserve the aurora gradient exclusively for primary CTAs and signature accent moments — never as a background fill or decoration
-- Set all headings at weight 500 — no bold, no light, no other weights at display sizes
-- Apply uppercase tracking (0.08–0.15em) to all section labels, kickers, and eyebrow text at 10–20px
-- Use lavender-phosphor pink (`#fde9ff`) only for large statistics and emphasis figures — never for body text or UI controls
-- Keep card radii at 16px and small element radii at 6px — these two values are the complete shape vocabulary
-- Use line-height 1.0 for all display text above 36px and 1.4 for all body text — the contrast defines the typographic rhythm
+- 색은 위계에만 쓴다 — 텍스트는 `#1b1c1c` → `#444748` → `#5e5e5e` 3단계로 내려간다
+- 경계는 **1px 헤어라인**(`border-outline/20`)으로. 그림자는 쓰지 않는다
+- 라벨·연도·상태·기술명은 **전부 JetBrains Mono 대문자 + 넓은 트래킹**
+- 섹션 번호(`01.` `02.`)를 붙이고 좌측에 `sticky`로 고정한다
+- 이미지는 `grayscale`로 두고 호버에서만 색을 돌려준다
+- 큰 제목은 `tracking-tighter`(-0.02~-0.04em)로 조인다
+- 표면 차이는 회색 5단계 스택 안에서만 만든다
 
 ### Don't
-- Do not use drop shadows or box-shadows for elevation — differentiation comes from surface color shifts in the teal stack
-- Do not introduce bold (600+) or light (300−) weights at display sizes
-- Do not use white (`#ffffff`) for body text — reserve pure white for headings and nav, use silver (`#bbc7c6`) or mist (`#edfffe`)
-- Do not apply the aurora gradient to text, borders, or backgrounds larger than a single button — it loses luminosity at scale
-- Do not use rounded corners above 16px — buttons are 6px, cards are 16px
-- Do not place light text on light-pink (`#fde9ff`) — the pink is a background for dark text, not a text color on dark surfaces
-- Do not use any color outside the Liquid teal scale, silver neutrals, and lavender-phosphor accent
+- 알약 버튼을 만들지 않는다 — 최대 반경이 12px다
+- `box-shadow`로 띄우지 않는다 (`shadow-sm`이 몇 군데 있지만 거의 안 보인다)
+- 유채색을 장식으로 쓰지 않는다 — 에러 계열은 접근 제한 배지 전용
+- 본문에 순수 검정(`#000000`)을 쓰지 않는다 — 본문은 `#1b1c1c`, 검정은 제목·버튼·푸터용
+- 모노 서체를 본문에 쓰지 않는다 — 라벨과 데이터 전용
+- 섹션 간격을 120px보다 좁히지 않는다
 
-## Surfaces
+---
 
-| Level | Name | Value | Purpose |
-|-------|------|-------|---------|
-| 0 | Liquid Abyss | `#012624` | Page canvas — the dominant background field |
-| 1 | Liquid Deep | `#011d1c` | Recessed surface — footer and very deep panels |
-| 2 | Liquid Kelp | `#003734` | Raised card surface — content cards, feature panels |
-| 3 | Slate Deep | `#707777` | Low-emphasis surface tint for inactive states |
+## Screens (Stitch 산출)
 
-## Elevation
+| # | 화면 | 상태 |
+|---|------|------|
+| 1 | Home — 히어로 | 정적 |
+| 2 | Home — 인트로 모션 포함 | 로더 + 글자 스태거 |
+| 3 | Project 01 — Hanwha Q.partners | 성과 수치 있음(⚠️ 미검증) |
+| 4 | Project 02 — 힘이나는 커피생활 BO | EN / KR·EN 병기 2벌 |
+| 5 | Project 03 — HANASYS DESIGN | EN / KR·EN 병기 2벌, 접근 제한 표현 |
+| 6 | Project 04 — CJ FreshWay | EN / KR·EN 병기 2벌, 디바이스 프레임 |
+| 7 | Lab / Experiments | 3개 실험 카드 |
+| 8 | Index / Archive | 테이블 리스트 5행 + LOAD PREVIOUS |
+| 9 | Stack & Evolution | 필터 + 벤토 그리드 + 타임라인 |
 
-The design deliberately avoids drop shadows. Depth is communicated through a teal-tinted surface stack (abyss → deep → kelp) where each level is a darker or lighter step in the same green hue. This creates the sensation of objects floating at different depths in water rather than being raised off paper.
+프로젝트 5개 중 **대한약사회가 빠졌다.** Obsidian `01_Projects/`와 대조 필요.
 
-## Imagery
-
-Imagery is minimal and atmospheric. The hero features a 3D particle sphere — thousands of small teal-cyan and white dots forming a rotating orb. Section decorations include flat geometric molecular diagrams (white circles and thin connector lines on the dark canvas). No photography, no lifestyle imagery, no people — the visual language is pure data-graphics and abstract forms.
-
-## Layout
-
-Full-bleed dark canvas with max-width 1440px content. Hero is a centered text stack (eyebrow → headline → subtext → CTA) occupying the full viewport height, with the particle sphere as a background element. Sections are full-width bands separated by generous 68px+ vertical gaps, alternating between canvas and slightly recessed surfaces. Content is centered in narrow columns (max ~600px) for readability rather than stretching edge-to-edge. The footer is a recessed well (`#011d1c`) with 120px vertical padding. Navigation is a thin transparent bar with items spaced at 16–24px gaps.
-
-## Agent Prompt Guide
-
-**Quick Color Reference**
-- Text (primary): `#ffffff`
-- Text (body/secondary): `#bbc7c6`
-- Text (emphasis/mist): `#edfffe`
-- Background (canvas): `#012624`
-- Border: `#707777` or `rgba(255,255,255,0.1)`
-- Accent (stats/highlights): `#fde9ff`
-- Primary action: `#003734` (filled action)
-
-**Example Component Prompts**
-
-1. **Primary Action Button:** `#003734` background, `#ffffff` text, compact pill padding.
-2. **Feature card:** Background `#003734`, 16px radius, 36px padding. Heading at 36px weight 500 `#ffffff`, line-height 1.0. Body at 16px weight 400 `#bbc7c6`. Arrow icon button (32×32, 6px radius, `rgba(3,81,75,0.5)` fill) top-right with white ↗ icon.
-3. **Statistics block:** Three columns. Large number at 86px weight 500 `#fde9ff`, line-height 1.0, letter-spacing -3.96px. Label below at 13px weight 400, uppercase, 0.055em letter-spacing, `#edfffe`.
-
-## Similar Brands
-
-- **Wintermute** — Same dark teal-black crypto-native palette with white text, generous spacing, minimal decoration
-- **Jump Crypto** — Dark mode institutional aesthetic with uppercase tracked labels, medium-weight display type, single restrained accent
-- **Galaxy Digital** — Deep dark canvas with luminous accent moments, spacious section rhythm, scale through type rather than imagery
-- **Flowdesk** — Dark teal-dominant palette with gradient accent buttons, geometric decorative elements, medium-weight geometric type
+---
 
 ## Quick Start — Tailwind v4
 
 `src/app/globals.css`의 `@theme inline`에 넣는다. `tailwind.config.js`는 만들지 않는다.
+Stitch의 `tailwind.config` 블록은 **버린다** — 아래가 변환 결과다.
 
 ```css
 @theme {
-  /* Colors */
-  --color-liquid-abyss: #012624;
-  --color-liquid-deep: #011d1c;
-  --color-liquid-kelp: #003734;
-  --color-liquid-mist: #edfffe;
-  --color-platinum: #ffffff;
-  --color-silver-mist: #bbc7c6;
-  --color-ash: #f2f2f2;
-  --color-slate-deep: #707777;
-  --color-lavender-phosphor: #fde9ff;
+  /* Colors — 핵심 */
+  --color-primary: #000000;
+  --color-on-primary: #ffffff;
+  --color-background: #faf9f9;
+  --color-surface: #faf9f9;
+  --color-on-surface: #1b1c1c;
+  --color-on-surface-variant: #444748;
+  --color-secondary: #5e5e5e;
+  --color-outline: #747878;
+  --color-outline-variant: #c4c7c7;
+
+  /* Colors — 표면 스택 */
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f4f3f3;
+  --color-surface-container: #efeded;
+  --color-surface-container-high: #e9e8e8;
+  --color-surface-container-highest: #e3e2e2;
+  --color-surface-dim: #dbdad9;
+  --color-surface-variant: #e3e2e2;
+
+  /* Colors — 에러 (접근 제한 배지 전용) */
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  /* Colors — 하드코딩되어 있던 값 (위 표 참조) */
+  --color-card: #fdfcfb;
+  --color-ink: #1a1a1a;
+  --color-accent: #4a5568;
 
   /* Typography */
-  --font-matter: 'Matter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-arial: 'Arial', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 
-  /* Typography — Scale */
-  --text-caption: 10px;
-  --leading-caption: 1.4;
-  --tracking-caption: 1.5px;
-  --text-body: 16px;
-  --leading-body: 1.4;
-  --text-subheading: 24px;
-  --leading-subheading: 1.3;
-  --tracking-subheading: -0.48px;
-  --text-heading: 36px;
-  --leading-heading: 1;
-  --text-heading-lg: 61px;
-  --leading-heading-lg: 1;
-  --tracking-heading-lg: -2.44px;
-  --text-display: 96px;
-  --leading-display: 1;
-  --tracking-display: -3.84px;
+  --text-display: 80px;
+  --leading-display: 1.1;
+  --tracking-display: -0.04em;
+
+  --text-headline-lg: 48px;
+  --leading-headline-lg: 1.2;
+  --tracking-headline-lg: -0.02em;
+
+  --text-headline-md: 24px;
+  --leading-headline-md: 1.4;
+  --tracking-headline-md: -0.01em;
+
+  --text-body-lg: 18px;
+  --leading-body-lg: 1.6;
+
+  --text-body-sm: 15px;
+  --leading-body-sm: 1.6;
+
+  --text-mono-data: 14px;
+  --leading-mono-data: 1.5;
+
+  --text-mono-label: 13px;
+  --leading-mono-label: 1.2;
+  --tracking-mono-label: 0.05em;
 
   /* Spacing */
-  --spacing-12: 12px;
-  --spacing-16: 16px;
-  --spacing-20: 20px;
-  --spacing-24: 24px;
-  --spacing-28: 28px;
-  --spacing-32: 32px;
-  --spacing-36: 36px;
-  --spacing-40: 40px;
-  --spacing-48: 48px;
-  --spacing-64: 64px;
-  --spacing-80: 80px;
-  --spacing-120: 120px;
-  --spacing-140: 140px;
-  --spacing-160: 160px;
-  --spacing-164: 164px;
+  --spacing-base: 8px;
+  --spacing-gutter: 24px;
+  --spacing-margin-mobile: 20px;
+  --spacing-margin-desktop: 64px;
+  --spacing-section-gap: 120px;
 
   /* Border Radius */
-  --radius-md: 6px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
+  --radius-DEFAULT: 0.125rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.5rem;
+  --radius-full: 0.75rem;
 }
-```
 
-### Gradients
-
-`@theme`의 `--color-*`는 단색만 받는다. 그라디언트는 일반 CSS 변수로 따로 둔다.
-
-```css
 :root {
-  --gradient-bioluminescent: linear-gradient(90deg, rgb(0, 130, 124) 0%, rgb(203, 255, 252) 100%);
-  --gradient-aurora: linear-gradient(
-    90deg,
-    rgb(203, 255, 252) 0%,
-    rgb(237, 255, 254) 26.25%,
-    rgb(255, 253, 250) 47.57%,
-    rgb(250, 209, 255) 88.96%
-  );
+  /* 헤어라인 — outline의 알파 변형을 반복해 쓴다 */
+  --hairline: rgba(142, 142, 142, 0.2);
+  --divider: rgba(142, 142, 142, 0.3);
+
+  /* 콘텐츠 최대 폭 — @theme의 spacing이 아니라 max-w로 쓴다 */
+  --container-max: 1280px;
 }
 ```
+
+**폰트는 `next/font`로 로드하고 CSS 변수로 노출한다.** Stitch의 Google Fonts `<link>`는 쓰지 않는다.
+
+```ts
+// src/app/layout.tsx
+import { Inter, JetBrains_Mono } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
+```
+
+---
+
+## Three.js 히어로 — 쓰려면 고쳐야 한다
+
+Stitch가 낸 두 스니펫 모두 **같은 스코프에 `const container`를 두 번 선언**해서 `SyntaxError`로 죽는다.
+두 번째 스니펫은 IIFE가 이중으로 중첩돼 있기도 하다.
+
+원래 의도:
+- 파티클 1000~2000개를 10×10×10 큐브에 랜덤 배치
+- `PointsMaterial` — 색 `0x4A5568` 또는 `0x1a1a1a`, size 0.005~0.02, opacity 0.4~0.5
+- `rotation.y += 0.001`, `rotation.x += 0.0005` 상시 회전
+- 마우스 위치로 카메라를 `0.05` 계수로 부드럽게 따라가게
+- `alpha: true`로 배경 투명 → 라이트 캔버스 위에 얹힘
+
+**three.js r125를 CDN으로 부르는 것도 그대로 쓰면 안 된다.** npm 의존성으로 넣거나, 파티클을 CSS/SVG로 대체할지 결정한다.
+`prefers-reduced-motion`에서 정지시키는 처리도 없다.
