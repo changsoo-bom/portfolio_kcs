@@ -12,36 +12,19 @@
 - **Tailwind CSS v4** — CSS 기반 설정(`@theme inline`), `tailwind.config.js` 없음
 - 패키지 매니저 **pnpm**
 
-Zustand · TanStack Query · Zod · Prisma · 애니메이션 라이브러리는 **아직 설치하지 않았다.**
+Zustand · TanStack Query · Zod · Prisma는 **아직 설치하지 않았다.**
 `.claude/rules/state.md`의 판단 흐름에서 실제로 필요해진 시점에 추가한다.
 
 ## 현재 상태
 
-> **백지 상태다** (2026-08-11 리셋). `src/`는 create-next-app 기본 4개 파일뿐이고
-> 디자인 가이드도 없다. 여기서 하나씩 다시 잡아간다.
+`create-next-app` 직후 상태다. `src/app/`에 루트 `layout.tsx`·`page.tsx`(기본 템플릿)만 있다.
 
-한 번 만들었다가 전부 지웠다. 그때 코드는 커밋 `f798e72`에 있다 —
-원페이지 7섹션, Stitch 라이트 토큰, anime.js 인트로, three.js 스타필드.
-**참고는 하되 그대로 되살리지 않는다.** 지운 이유가 있다.
-
-**기준 문서는 Obsidian `portfolio-kcs/frontend_portfolio_claude_code_prompt.md`(작업 지시서)다.**
-이 파일과 지시서가 어긋나면 지시서가 이긴다.
-
-- 콘텐츠 원본 — Obsidian `portfolio-kcs/` (Profile 3 · Projects 5 · Tech 8 · AI 5 · Website 4)
-- 구현 결정 — `portfolio-kcs/05_Website/portfolio-기획.md`
-- 라우트·섹션 구조 — `portfolio-kcs/05_Website/Sitemap.md`
-
-**Obsidian 콘텐츠는 그대로 살아 있다.** 지운 것은 코드와 디자인 가이드뿐이다.
-다만 기획·Sitemap 문서에는 지워진 구현을 전제로 쓴 내용이 남아 있으니,
-다시 만들 때 문서부터 현재 결정에 맞추고 시작한다.
+`.claude/rules/structure.md`의 `src/` 폴더들(`components/`, `hooks/`, `lib/`, `types/`, `constants/`)과
+`(public)` / `(auth)` 라우트 그룹은 **미리 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
 
 | 경로 | 상태 |
 |------|------|
-| `/` | create-next-app 기본 화면 |
-
-`.claude/rules/structure.md`의 `components/`, `constants/`, `types/`, `hooks/`, `lib/`와
-라우트 그룹은 **하나도 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
-미리 폴더를 파두지 않는다.
+| `/` | `create-next-app` 기본 페이지 — 교체 필요 |
 
 ## 상세 규칙
 
