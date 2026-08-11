@@ -17,8 +17,8 @@ Zustand · TanStack Query · Zod · Prisma는 **아직 설치하지 않았다.**
 
 ## 현재 상태
 
-> **지금 `src/`의 코드는 전부 임시 뼈대다.** 원고도 디자인도 확정 전에 만든 것이라
-> 확정본이 나오면 갈아엎는다. 새 기능을 여기에 쌓지 않는다.
+> **7개 라우트를 Obsidian 확정 원고 + Stitch 디자인 기준으로 구현했다** (2026-08-11).
+> 더 이상 임시 뼈대가 아니다. 다만 원고에 남은 TODO는 여전히 TODO다.
 
 **기준 문서는 Obsidian `portfolio-kcs/frontend_portfolio_claude_code_prompt.md`(작업 지시서)다.**
 이 파일과 지시서가 어긋나면 지시서가 이긴다.
@@ -27,25 +27,38 @@ Zustand · TanStack Query · Zod · Prisma는 **아직 설치하지 않았다.**
 - 구현 결정 — `portfolio-kcs/05_Website/portfolio-기획.md`
 - 라우트·섹션 구조 — `portfolio-kcs/05_Website/Sitemap.md`
 
-**현재 단계는 지시서 §22 — 웹사이트 코드를 작성하지 않는다.**
-Obsidian TODO를 채우고 → Google Stitch 디자인 → 그다음 구현이다.
+디자인은 `docs/design-reference.md`(Stitch 산출본 — 라이트 에디토리얼, Inter + JetBrains Mono).
+`globals.css`의 토큰이 그 기준으로 교체됐다. 이전 Auros(다크)는 커밋 `5448a13` 이전 히스토리에 있다.
 
-디자인은 **미확정**이다. `docs/design-reference.md`(Auros, 다크 전용)는 **보관**이며,
-`globals.css`에 들어간 토큰도 임시다. Stitch 결과와 비교해 결정한다.
+Stitch 산출물을 그대로 옮기지 않았다 — 레퍼런스 상단 "적용 전 해결해야 할 것" 10개 중
+**네비게이션은 기획 문서를 따랐고**(TopNavBar 폐기, 풀스크린 버거 유지),
+**근거 없는 성과 수치·`STUDIO.DEV` 브랜드명·만료되는 이미지 URL은 넣지 않았다.**
 
-`.claude/rules/structure.md`의 나머지 폴더(`components/`, `hooks/`, `lib/`, `types/`)와
-`(auth)` 라우트 그룹은 **미리 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
+`.claude/rules/structure.md`의 `hooks/`, `lib/`와 `(auth)` 라우트 그룹은
+**미리 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
 
 | 경로 | 상태 |
 |------|------|
-| `/` | 히어로 + 인트로 커버 — **원고가 자리표시 문구다** |
-| `/about` `/skills` `/work` `/contact` | 뼈대만. 내용 미작성 |
+| `/` | 히어로 + 인트로 커버 |
+| `/about` | Intro · 강점 · 약점 |
+| `/experience` | 경력 2개 + 성장 축 |
+| `/work` | 프로젝트 5개 (`order` 순 — 시간순 아님) |
+| `/tech` | 기술 8개 |
+| `/how-i-work` | AI Workflow 5단계 + Build Process |
+| `/contact` | 이메일 · GitHub (`mailto:`, 폼 없음) |
+
+`/work/[id]` 상세는 **아직 만들지 않았다** — Overview·Challenge·Approach가 채워진 프로젝트가
+3개 이상일 때 만든다(기획 §라우트 구조). 프로젝트 5개 중 4개의 `period`가 비어 있다.
 
 - 네비게이션은 모든 화면에서 **풀스크린 버거**(`app/_components/NavPop.tsx`).
   네이티브 `<dialog showModal()>`이라 포커스 트랩·Esc·포커스 복귀가 브라우저 기본 동작이다
 - 인트로 커버는 첫 방문에만. `layout.tsx`의 head 인라인 스크립트가 `sessionStorage`를 읽어
   `<html data-intro="seen">`을 붙이고, 재생 여부는 CSS가 판단한다
-- 원고는 `src/constants/profile.ts`. 확정본은 Obsidian `portfolio-kcs/portfolio-자기소개.md`
+- 원고·데이터는 `src/constants/` 4개 — `profile.ts`(PROFILE·NAV_ITEMS·COPY) ·
+  `projects.ts` · `tech.ts` · `experience.ts`. **원본은 Obsidian이고 여기는 사본이다.**
+  문구를 고칠 때 컴포넌트를 열지 않는다
+- 프로젝트 데이터는 마크다운 파싱이 아니라 **TS 상수**다 — 파일이 5개뿐이라서다(기획 §데이터 모델).
+  늘어나면 빌드 타임 파싱으로 바꾼다
 - 클라이언트 컴포넌트는 `NavPop` **하나뿐**. 나머지는 전부 서버 컴포넌트
 
 ## 상세 규칙
