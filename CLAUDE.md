@@ -12,6 +12,8 @@
 - **Tailwind CSS v4** — CSS 기반 설정(`@theme inline`), `tailwind.config.js` 없음
 - 패키지 매니저 **pnpm**
 
+- **anime.js 4.5** — 인트로 타임라인 전용. 스크롤 애니메이션은 CSS가 맡는다
+
 Zustand · TanStack Query · Zod · Prisma는 **아직 설치하지 않았다.**
 `.claude/rules/state.md`의 판단 흐름에서 실제로 필요해진 시점에 추가한다.
 
@@ -64,7 +66,12 @@ Obsidian `portfolio-기획.md`의 "모든 화면 풀스크린 버거"는 이 결
   문구를 고칠 때 컴포넌트를 열지 않는다
 - 프로젝트 데이터는 마크다운 파싱이 아니라 **TS 상수**다 — 파일이 5개뿐이라서다(기획 §데이터 모델).
   늘어나면 빌드 타임 파싱으로 바꾼다
-- 클라이언트 컴포넌트는 `NavPop` **하나뿐**. 나머지는 전부 서버 컴포넌트
+- 인트로 커버는 **anime.js 타임라인**(`app/_components/IntroCover.tsx`) —
+  글자 등장 → 카운터 0→100 + 진행 바 → 커버가 위로 걷힘.
+  네 단계가 물려 있어 CSS 키프레임 네 벌보다 타임라인 하나가 읽기 쉽다
+- **스크롤 애니메이션은 anime.js를 쓰지 않는다.** CSS `animation-timeline`이 같은 일을 하는데
+  JS가 0줄이고 서버 컴포넌트를 클라이언트로 바꾸지 않아도 된다
+- 클라이언트 컴포넌트는 `SiteNav` · `IntroCover` **둘뿐**. 나머지는 전부 서버 컴포넌트
 
 ## 상세 규칙
 

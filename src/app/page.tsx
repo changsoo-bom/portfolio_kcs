@@ -1,22 +1,12 @@
 import Link from "next/link";
 
+import { IntroCover } from "@/app/_components/IntroCover";
 import { PROFILE } from "@/constants/profile";
 
 export default function Home() {
   return (
     <>
-      {/*
-        인트로 커버. 히어로를 덮는 오버레이라 히어로 마크업은 처음부터 DOM에 있다
-        — LCP와 크롤러에 영향이 없다. 재생 여부는 CSS가 판단한다(globals.css).
-      */}
-      <div
-        aria-hidden="true"
-        className="intro-cover fixed inset-0 z-50 flex items-center justify-center bg-surface"
-      >
-        <p className="text-3xl font-semibold text-ink sm:text-5xl">
-          {PROFILE.name}
-        </p>
-      </div>
+      <IntroCover line={`${PROFILE.role}. ${PROFILE.tagline}`} />
 
       <main className="flex flex-col flex-1 justify-center w-full max-w-[1280px] mx-auto px-5 pt-28 pb-16 sm:px-8 lg:px-16">
         {/* .rise는 :nth-child로 딜레이를 준다 — 순서를 바꾸면 타이밍도 바뀐다 */}
