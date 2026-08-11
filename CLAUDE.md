@@ -31,8 +31,10 @@ Zustand · TanStack Query · Zod · Prisma는 **아직 설치하지 않았다.**
 `globals.css`의 토큰이 그 기준으로 교체됐다. 이전 Auros(다크)는 커밋 `5448a13` 이전 히스토리에 있다.
 
 Stitch 산출물을 그대로 옮기지 않았다 — 레퍼런스 상단 "적용 전 해결해야 할 것" 10개 중
-**네비게이션은 기획 문서를 따랐고**(TopNavBar 폐기, 풀스크린 버거 유지),
 **근거 없는 성과 수치·`STUDIO.DEV` 브랜드명·만료되는 이미지 URL은 넣지 않았다.**
+
+네비게이션은 **Stitch 쪽으로 결정했다**(2026-08-11) — 데스크톱 가로 메뉴 + 모바일 버거.
+Obsidian `portfolio-기획.md`의 "모든 화면 풀스크린 버거"는 이 결정으로 대체됐다.
 
 `.claude/rules/structure.md`의 `hooks/`, `lib/`와 `(auth)` 라우트 그룹은
 **미리 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
@@ -50,8 +52,11 @@ Stitch 산출물을 그대로 옮기지 않았다 — 레퍼런스 상단 "적�
 `/work/[id]` 상세는 **아직 만들지 않았다** — Overview·Challenge·Approach가 채워진 프로젝트가
 3개 이상일 때 만든다(기획 §라우트 구조). 프로젝트 5개 중 4개의 `period`가 비어 있다.
 
-- 네비게이션은 모든 화면에서 **풀스크린 버거**(`app/_components/NavPop.tsx`).
-  네이티브 `<dialog showModal()>`이라 포커스 트랩·Esc·포커스 복귀가 브라우저 기본 동작이다
+- 네비게이션은 `app/_components/SiteNav.tsx` **하나**가 담당한다 —
+  `lg:`(1024px) 이상은 가로 메뉴, 그 아래는 **풀스크린 버거**.
+  전환 기준이 `md:`가 아닌 이유는 메뉴 6개(`HOW I WORK` 포함) 가로 폭이 ~525px라 로고와 겹쳐서다
+- 버거는 네이티브 `<dialog showModal()>`이라 포커스 트랩·Esc·포커스 복귀가 브라우저 기본 동작이다
+- 현재 경로 표시(`usePathname`) 때문에 클라이언트 컴포넌트다
 - 인트로 커버는 첫 방문에만. `layout.tsx`의 head 인라인 스크립트가 `sessionStorage`를 읽어
   `<html data-intro="seen">`을 붙이고, 재생 여부는 CSS가 판단한다
 - 원고·데이터는 `src/constants/` 4개 — `profile.ts`(PROFILE·NAV_ITEMS·COPY) ·

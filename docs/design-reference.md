@@ -17,7 +17,7 @@ Stitch 산출물을 그대로 코드로 옮기면 안 되는 지점들. **순서
 
 | # | 항목 | Stitch 산출물 | 이 프로젝트 | 처리 |
 |---|------|--------------|------------|------|
-| 1 | **네비게이션** | 데스크톱 `TopNavBar` + 모바일 버거 | **모든 화면 풀스크린 버거**(`NavPop`) | 정면 충돌. 둘 중 하나를 버린다 |
+| 1 | ~~**네비게이션**~~ | 데스크톱 `TopNavBar` + 모바일 버거 | — | **해결(2026-08-11).** Stitch 쪽 채택 — `SiteNav.tsx`에서 `lg:` 이상 가로 메뉴, 그 아래 버거 |
 | 2 | **라우트** | EXPLORE / WORK / STACK / ABOUT / CONTACT | `Sitemap.md`의 7개 | 이름·개수 대조 필요 |
 | 3 | **브랜드명** | `STUDIO.DEV` | 미확정 | **전부 자리표시.** 확정 전엔 코드에 박지 않는다 |
 | 4 | **다크모드** | 없음 (`darkMode:"class"`는 선언만, 다크 값이 라이트와 동일) | `prefers-color-scheme` 기반 | 라이트 고정으로 갈지 결정 |
@@ -175,7 +175,9 @@ Stitch가 토큰을 안 쓰고 직접 박아둔 것들. **정리해서 토큰으
 `fixed`/`sticky top-0`, `bg-surface/80 backdrop-blur-md`, 하단 `border-b border-outline/20`.
 좌측 워드마크(`headline-md` 700, `tracking-tighter`), 중앙 링크 5개(`mono-label` 대문자 `tracking-widest`), 우측 CTA 버튼.
 활성 링크는 `border-b-2 border-primary pb-1`. 모바일에서는 2줄 버거 아이콘으로 접힌다.
-> ⚠️ 프로젝트 규칙은 **모든 화면 풀스크린 버거**다. 위 표 #1 참조.
+> 채택함(`SiteNav.tsx`). 단 전환 기준은 `md:`가 아니라 **`lg:`(1024px)** 다 —
+> 메뉴가 6개고 `HOW I WORK`이 길어서 768px에서는 로고와 겹친다.
+> CTA 버튼(`LET'S BUILD`)은 넣지 않았다. CONTACT 메뉴와 중복이다.
 
 ### Intro Loader — 첫 진입 커버
 `fixed inset-0 z-[100]`, 배경에 Three.js 파티클. 중앙에 모노 라벨이 400ms 간격으로
