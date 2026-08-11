@@ -15,17 +15,6 @@
 Zustand · TanStack Query · Zod · Prisma는 **아직 설치하지 않았다.**
 `.claude/rules/state.md`의 판단 흐름에서 실제로 필요해진 시점에 추가한다.
 
-## 현재 상태
-
-`create-next-app` 직후 상태다. `src/app/`에 루트 `layout.tsx`·`page.tsx`(기본 템플릿)만 있다.
-
-`.claude/rules/structure.md`의 `src/` 폴더들(`components/`, `hooks/`, `lib/`, `types/`, `constants/`)과
-`(public)` / `(auth)` 라우트 그룹은 **미리 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
-
-| 경로 | 상태 |
-|------|------|
-| `/` | `create-next-app` 기본 페이지 — 교체 필요 |
-
 ## 상세 규칙
 
 원본은 Obsidian vault `개발-공통규칙/`. 아래 6개는 매 세션 함께 로드된다.
