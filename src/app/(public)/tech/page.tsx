@@ -23,10 +23,12 @@ export default function TechPage() {
         {TECH_STACK.map((t, i) => (
           <div
             key={t.name}
-            className="grid grid-cols-1 gap-4 py-8 border-b border-hairline md:grid-cols-12 md:gap-6"
+            className="reveal row-hover group grid grid-cols-1 gap-4 py-8 border-b border-hairline md:grid-cols-12 md:gap-6"
           >
             <dt className="md:col-span-4">
-              <span className="label">{String(i + 1).padStart(2, "0")}</span>
+              <span className="label transition-colors group-hover:text-ink">
+                {String(i + 1).padStart(2, "0")}
+              </span>
               <span className="block mt-2 text-xl font-medium tracking-[-0.01em] text-ink">
                 {t.name}
               </span>

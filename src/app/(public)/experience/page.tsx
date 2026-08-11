@@ -40,7 +40,7 @@ export default function ExperiencePage() {
       {CAREER.map((c) => (
         <section
           key={c.company}
-          className="grid grid-cols-1 gap-6 py-12 border-b border-hairline md:grid-cols-12"
+          className="reveal grid grid-cols-1 gap-6 py-12 border-b border-hairline md:grid-cols-12"
         >
           <div className="md:col-span-3">
             <p className="font-mono text-2xl text-ink">{c.year}</p>

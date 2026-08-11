@@ -12,9 +12,11 @@ export function ProjectCard({ project }: { project: Project }) {
   const badge = VISIBILITY_BADGE[project.visibility];
 
   return (
-    <article className="grid grid-cols-1 gap-6 py-10 border-b border-hairline md:grid-cols-12">
+    <article className="reveal row-hover group grid grid-cols-1 gap-6 py-10 border-b border-hairline md:grid-cols-12">
       <div className="md:col-span-3">
-        <p className="label">{String(project.order).padStart(2, "0")}</p>
+        <p className="label transition-colors group-hover:text-ink">
+          {String(project.order).padStart(2, "0")}
+        </p>
         {project.period ? (
           <p className="mt-2 font-mono text-sm text-label">{project.period}</p>
         ) : null}
@@ -43,7 +45,7 @@ export function ProjectCard({ project }: { project: Project }) {
           {project.tech.map((t) => (
             <li
               key={t}
-              className="px-3 py-1 font-mono text-xs tracking-wider text-label border border-hairline rounded-sm"
+              className="px-3 py-1 font-mono text-xs tracking-wider text-label border border-hairline rounded-sm transition-colors group-hover:border-divider group-hover:text-ink"
             >
               {t}
             </li>

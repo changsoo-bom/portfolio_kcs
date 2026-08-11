@@ -57,6 +57,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Link>
             <SiteNav />
           </div>
+
+          {/* 스크롤 진행 바. CSS scroll timeline이라 JS가 없다 */}
+          <div
+            aria-hidden="true"
+            className="scroll-progress absolute bottom-0 left-0 w-full h-px bg-ink"
+          />
         </header>
         {children}
       </body>

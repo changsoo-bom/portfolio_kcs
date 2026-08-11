@@ -50,6 +50,53 @@ body {
   font-family: var(--font-sans);
 }
 
+/* 고정 헤더(h-20)에 제목이 가리지 않게 앵커 이동 지점을 내린다 */
+html {
+  scroll-padding-top: 6rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/*
+  링크 밑줄이 왼쪽에서 자란다.
+  `text-decoration`이 아니라 배경 그라디언트라 두께·색·속도를 따로 잡을 수 있다.
+*/
+.underline-grow {
+  background-image: linear-gradient(var(--ink), var(--ink));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.underline-grow:hover,
+.underline-grow:focus-visible {
+  background-size: 100% 1px;
+}
+
+/* 목록 행 — 호버하면 안쪽으로 밀리고 번호에 불이 들어온다 */
+.row-hover {
+  transition:
+    background-color 0.3s ease,
+    padding-left 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.row-hover:hover {
+  background-color: var(--surface-low);
+  padding-left: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .underline-grow,
+  .row-hover {
+    transition: none;
+  }
+}
+
 /*
   계측 라벨 — 연도·상태·기술명·섹션 번호.
   모노 + 대문자 + 넓은 트래킹이 이 디자인의 성격을 만든다.
@@ -72,6 +119,48 @@ body {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/*
+  스크롤 인터랙션 — CSS 스크롤 기반 애니메이션.
+
+  IntersectionObserver를 쓰지 않는다. `animation-timeline`이 같은 일을 하는데
+  JS가 0줄이고, 서버 컴포넌트를 클라이언트로 바꾸지 않아도 된다.
+
+  @supports 밖이면 규칙이 통째로 무시되므로 미지원 브라우저는 그냥 보인다 —
+  콘텐츠가 숨겨진 채 남는 사고가 구조적으로 불가능하다.
+*/
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* 뷰포트에 들어오는 동안 떠오른다. 45%에서 끝나 스크롤을 앞서간다 */
+    .reveal {
+      animation: rise 1s ease both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+  }
+}
+
+@keyframes progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* 헤더 하단 진행 바. 문서 전체 스크롤에 물려 있다 */
+.scroll-progress {
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+@supports (animation-timeline: scroll()) {
+  .scroll-progress {
+    animation: progress linear both;
+    animation-timeline: scroll(root block);
   }
 }
 

@@ -19,7 +19,7 @@ export default function HowIWorkPage() {
         lead="I don't ask AI to build everything. I design the workflow around it."
       />
 
-      <section className="py-16 border-b border-hairline">
+      <section className="reveal py-16 border-b border-hairline">
         {COPY.howIWork.intro.map((p) => (
           <p
             key={p}
@@ -31,17 +31,19 @@ export default function HowIWorkPage() {
       </section>
 
       {/* 실제로 쓰는 도구만 적는다 — 03_AI/AI-Workflow.md */}
-      <section className="py-16 border-b border-hairline">
+      <section className="reveal py-16 border-b border-hairline">
         <h2 className="label">Workflow</h2>
 
         <ol className="mt-8">
           {AI_WORKFLOW.map((s) => (
             <li
               key={s.no}
-              className="grid grid-cols-1 gap-2 py-6 border-t border-hairline md:grid-cols-12 md:gap-6"
+              className="reveal row-hover group grid grid-cols-1 gap-2 py-6 border-t border-hairline md:grid-cols-12 md:gap-6"
             >
               <div className="flex items-baseline gap-4 md:col-span-4">
-                <span className="label">{s.no}</span>
+                <span className="label transition-colors group-hover:text-ink">
+                  {s.no}
+                </span>
                 <span className="text-xl font-medium tracking-[-0.01em] text-ink">
                   {s.stage}
                 </span>
@@ -57,7 +59,7 @@ export default function HowIWorkPage() {
         </ol>
       </section>
 
-      <section className="py-16 border-b border-hairline">
+      <section className="reveal py-16 border-b border-hairline">
         <h2 className="label">Build Process</h2>
 
         <ol className="flex flex-wrap gap-x-3 gap-y-2 mt-8">
@@ -83,7 +85,7 @@ export default function HowIWorkPage() {
         </ol>
       </section>
 
-      <section className="py-16">
+      <section className="reveal py-16">
         <h2 className="label">Principle</h2>
 
         <p className="max-w-[600px] mt-8 text-2xl font-medium leading-[1.4] tracking-[-0.01em] text-ink">

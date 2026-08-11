@@ -19,7 +19,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="grid grid-cols-1 gap-6 py-16 border-b border-hairline md:grid-cols-12">
+    <section className="reveal grid grid-cols-1 gap-6 py-16 border-b border-hairline md:grid-cols-12">
       <div className="md:col-span-4">
         <h2 className="label md:sticky md:top-28">
           {no} {label}

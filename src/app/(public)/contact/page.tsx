@@ -32,18 +32,24 @@ export default function ContactPage() {
           const external = c.href.startsWith("http");
 
           return (
-            <li key={c.label} className="border-b border-hairline">
+            <li key={c.label} className="reveal border-b border-hairline">
               <a
                 href={c.href}
                 {...(external
                   ? { target: "_blank", rel: "noopener noreferrer" }
                   : {})}
-                className="grid grid-cols-1 gap-2 py-8 transition-colors md:grid-cols-12 md:gap-6 hover:bg-surface-low"
+                className="row-hover group grid grid-cols-1 gap-2 py-8 md:grid-cols-12 md:gap-6"
               >
-                <span className="label md:col-span-4">{c.label}</span>
+                <span className="label md:col-span-4 transition-colors group-hover:text-ink">
+                  {c.label}
+                </span>
                 <span className="text-xl tracking-[-0.01em] text-ink md:col-span-8">
-                  {c.value}
-                  {external ? " ↗" : ""}
+                  <span className="underline-grow">{c.value}</span>
+                  {external ? (
+                    <span className="inline-block ml-1 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
+                      ↗
+                    </span>
+                  ) : null}
                 </span>
               </a>
             </li>

@@ -41,9 +41,15 @@ export default function Home() {
 
             <Link
               href="/about"
-              className="inline-flex items-center self-start h-12 px-6 font-mono text-sm tracking-wider uppercase text-surface bg-ink rounded-sm transition-colors hover:bg-accent md:self-auto"
+              className="group inline-flex items-center gap-2 self-start h-12 px-6 font-mono text-sm tracking-wider uppercase text-surface bg-ink rounded-sm transition-colors hover:bg-accent md:self-auto"
             >
               소개 보기
+              <span
+                aria-hidden="true"
+                className="inline-block transition-transform group-hover:translate-x-1"
+              >
+                →
+              </span>
             </Link>
           </div>
         </div>
