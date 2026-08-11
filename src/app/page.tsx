@@ -1,97 +1,69 @@
-import Link from "next/link";
+import Image from "next/image";
 
-import { IntroCover } from "@/app/_components/IntroCover";
-import { Starfield } from "@/app/_components/Starfield";
-import { AboutSection } from "@/components/home/AboutSection";
-import { ContactSection } from "@/components/home/ContactSection";
-import { ExperienceSection } from "@/components/home/ExperienceSection";
-import { TechSection } from "@/components/home/TechSection";
-import { WorkSection } from "@/components/home/WorkSection";
-import { PROFILE } from "@/constants/profile";
-
-/**
- * 원페이지. ABOUT·EXPERIENCE·WORK·TECH·CONTACT가 전부 여기 섹션으로 들어간다.
- * AI만 분량이 커서 `/how-i-work`로 따로 뺐다.
- */
 export default function Home() {
   return (
-    <>
-      <IntroCover line={`${PROFILE.role}. ${PROFILE.tagline}`} />
-      <Starfield />
-
-      {/*
-        히어로만 다크 구간이다 — 뒤에 스타필드가 비친다.
-        배경을 깔지 않고 z-10만 올려서 캔버스를 덮지 않는다.
-      */}
-      <header className="relative z-10 flex flex-col justify-center w-full max-w-[1280px] min-h-dvh mx-auto px-5 pt-28 pb-24 text-surface sm:px-8 lg:px-16">
-        {/* .rise는 :nth-child로 딜레이를 준다 — 순서를 바꾸면 타이밍도 바뀐다 */}
-        <p className="rise font-mono text-[13px] font-medium tracking-[0.12em] uppercase text-surface/60">
-          {PROFILE.concept}
-        </p>
-
-        <h1 className="rise mt-6 text-[clamp(2.5rem,9vw,5rem)] font-bold leading-[1.1] tracking-[-0.04em] text-surface">
-          {PROFILE.name}
-        </h1>
-
-        <p className="rise mt-6 max-w-[600px] text-lg leading-[1.6] text-surface/75">
-          {PROFILE.role}. {PROFILE.tagline}
-        </p>
-
-        <div className="rise mt-16 pt-6 border-t border-surface/25">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="font-mono text-[13px] font-medium tracking-[0.12em] uppercase text-surface/60">
-                Currently Exploring
-              </p>
-              <p className="mt-2 text-lg text-surface">
-                Next.js · React 19 · TypeScript · AI-assisted Development
-              </p>
-            </div>
-
-            <p
-              aria-hidden="true"
-              className="font-mono text-xs tracking-[0.2em] uppercase text-surface/60"
+    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+        <Image
+          className="dark:invert h-5 w-[100px]"
+          src="/next.svg"
+          alt="Next.js logo"
+          width={100}
+          height={20}
+          priority
+        />
+        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
+          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
+            To get started, edit the{" "}
+            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
+              page.tsx
+            </code>{" "}
+            file.
+          </h1>
+          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+            Looking for a starting point or more instructions? Head over to{" "}
+            <a
+              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+              className="font-medium text-zinc-950 dark:text-zinc-50"
             >
-              Scroll ↓
-            </p>
-          </div>
+              Templates
+            </a>{" "}
+            or the{" "}
+            <a
+              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+              className="font-medium text-zinc-950 dark:text-zinc-50"
+            >
+              Learning
+            </a>{" "}
+            center.
+          </p>
         </div>
-      </header>
-
-      {/* 본문은 불투명 — 여기서부터 스타필드를 덮고 라이트로 돌아온다 */}
-      <main className="relative z-10 w-full bg-surface">
-        <div className="w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-16">
-          <AboutSection />
-          <ExperienceSection />
-          <WorkSection />
-          <TechSection />
-
-          {/* AI 티저 — 본문은 /how-i-work에 있다 */}
-          <section className="reveal py-32 border-y border-divider md:py-40">
-            <p className="label">AI-Assisted Development</p>
-
-            <p className="max-w-[720px] mt-8 text-[clamp(1.5rem,4vw,2.25rem)] font-semibold leading-[1.3] tracking-[-0.02em] text-ink">
-              I don&apos;t ask AI to build everything.
-              <br />I design the workflow around it.
-            </p>
-
-            <Link
-              href="/how-i-work"
-              className="group inline-flex items-center gap-2 mt-10 h-12 px-6 font-mono text-sm tracking-wider uppercase text-surface bg-ink rounded-sm transition-colors hover:bg-accent"
-            >
-              Workflow 보기
-              <span
-                aria-hidden="true"
-                className="inline-block transition-transform group-hover:translate-x-1"
-              >
-                →
-              </span>
-            </Link>
-          </section>
-
-          <ContactSection />
+        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+          <a
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
+            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Image
+              className="dark:invert h-[14px] w-4"
+              src="/vercel.svg"
+              alt="Vercel logomark"
+              width={16}
+              height={14}
+            />
+            Deploy Now
+          </a>
+          <a
+            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
+            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Documentation
+          </a>
         </div>
       </main>
-    </>
+    </div>
   );
 }

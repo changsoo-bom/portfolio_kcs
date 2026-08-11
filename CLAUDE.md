@@ -12,74 +12,36 @@
 - **Tailwind CSS v4** — CSS 기반 설정(`@theme inline`), `tailwind.config.js` 없음
 - 패키지 매니저 **pnpm**
 
-- **anime.js 4.5** — 인트로 타임라인 전용. 스크롤 애니메이션은 CSS가 맡는다
-- **three 0.143.0** — 히어로 배경 스타필드 전용. **버전을 올리지 않는다** —
-  `WebGL1Renderer`가 그 뒤로 제거됐고 addon 경로도 `three/addons`로 바뀐다
-
-Zustand · TanStack Query · Zod · Prisma는 **아직 설치하지 않았다.**
+Zustand · TanStack Query · Zod · Prisma · 애니메이션 라이브러리는 **아직 설치하지 않았다.**
 `.claude/rules/state.md`의 판단 흐름에서 실제로 필요해진 시점에 추가한다.
 
 ## 현재 상태
 
-> **7개 라우트를 Obsidian 확정 원고 + Stitch 디자인 기준으로 구현했다** (2026-08-11).
-> 더 이상 임시 뼈대가 아니다. 다만 원고에 남은 TODO는 여전히 TODO다.
+> **백지 상태다** (2026-08-11 리셋). `src/`는 create-next-app 기본 4개 파일뿐이고
+> 디자인 가이드도 없다. 여기서 하나씩 다시 잡아간다.
+
+한 번 만들었다가 전부 지웠다. 그때 코드는 커밋 `f798e72`에 있다 —
+원페이지 7섹션, Stitch 라이트 토큰, anime.js 인트로, three.js 스타필드.
+**참고는 하되 그대로 되살리지 않는다.** 지운 이유가 있다.
 
 **기준 문서는 Obsidian `portfolio-kcs/frontend_portfolio_claude_code_prompt.md`(작업 지시서)다.**
 이 파일과 지시서가 어긋나면 지시서가 이긴다.
 
-- 콘텐츠 원본 — Obsidian `portfolio-kcs/` (Profile 3 · Projects 5 · Tech 8 · Website 3)
+- 콘텐츠 원본 — Obsidian `portfolio-kcs/` (Profile 3 · Projects 5 · Tech 8 · AI 5 · Website 4)
 - 구현 결정 — `portfolio-kcs/05_Website/portfolio-기획.md`
 - 라우트·섹션 구조 — `portfolio-kcs/05_Website/Sitemap.md`
 
-디자인은 `docs/design-reference.md`(Stitch 산출본 — 라이트 에디토리얼, Inter + JetBrains Mono).
-`globals.css`의 토큰이 그 기준으로 교체됐다. 이전 Auros(다크)는 커밋 `5448a13` 이전 히스토리에 있다.
+**Obsidian 콘텐츠는 그대로 살아 있다.** 지운 것은 코드와 디자인 가이드뿐이다.
+다만 기획·Sitemap 문서에는 지워진 구현을 전제로 쓴 내용이 남아 있으니,
+다시 만들 때 문서부터 현재 결정에 맞추고 시작한다.
 
-Stitch 산출물을 그대로 옮기지 않았다 — 레퍼런스 상단 "적용 전 해결해야 할 것" 10개 중
-**근거 없는 성과 수치·`STUDIO.DEV` 브랜드명·만료되는 이미지 URL은 넣지 않았다.**
-
-네비게이션은 **Stitch 쪽으로 결정했다**(2026-08-11) — 데스크톱 가로 메뉴 + 모바일 버거.
-Obsidian `portfolio-기획.md`의 "모든 화면 풀스크린 버거"는 이 결정으로 대체됐다.
-
-`.claude/rules/structure.md`의 `hooks/`, `lib/`와 `(auth)` 라우트 그룹은
-**미리 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
-
-**라우트는 둘뿐이다.** 나머지는 전부 `/`의 섹션이고 네비는 앵커로 이동한다.
-
-| 경로 | 내용 |
+| 경로 | 상태 |
 |------|------|
-| `/` | 히어로 + `#about` `#experience` `#work` `#tech` + AI 티저 + `#contact` — 약 8화면 |
-| `/how-i-work` | AI-ASSISTED DEVELOPMENT — Workflow 5단계 + Build Process |
+| `/` | create-next-app 기본 화면 |
 
-섹션 본문은 `components/home/*Section.tsx` 다섯 개다. `page.tsx`는 조립만 한다.
-AI만 라우트를 따로 준 이유는 분량이 커서다.
-
-`/work/[id]` 상세는 **아직 만들지 않았다** — Overview·Challenge·Approach가 채워진 프로젝트가
-3개 이상일 때 만든다(기획 §라우트 구조). 프로젝트 5개 중 4개의 `period`가 비어 있다.
-
-- 네비게이션은 `app/_components/SiteNav.tsx` **하나**가 담당한다 —
-  `lg:`(1024px) 이상은 가로 메뉴, 그 아래는 **풀스크린 버거**.
-  전환 기준이 `md:`가 아닌 이유는 메뉴 6개(`HOW I WORK` 포함) 가로 폭이 ~525px라 로고와 겹쳐서다
-- 버거는 네이티브 `<dialog showModal()>`이라 포커스 트랩·Esc·포커스 복귀가 브라우저 기본 동작이다
-- 현재 경로 표시(`usePathname`) 때문에 클라이언트 컴포넌트다
-- 인트로 커버는 첫 방문에만. `layout.tsx`의 head 인라인 스크립트가 `sessionStorage`를 읽어
-  `<html data-intro="seen">`을 붙이고, 재생 여부는 CSS가 판단한다
-- 원고·데이터는 `src/constants/` 4개 — `profile.ts`(PROFILE·NAV_ITEMS·COPY) ·
-  `projects.ts` · `tech.ts` · `experience.ts`. **원본은 Obsidian이고 여기는 사본이다.**
-  문구를 고칠 때 컴포넌트를 열지 않는다
-- 프로젝트 데이터는 마크다운 파싱이 아니라 **TS 상수**다 — 파일이 5개뿐이라서다(기획 §데이터 모델).
-  늘어나면 빌드 타임 파싱으로 바꾼다
-- 인트로 커버는 **anime.js 타임라인**(`app/_components/IntroCover.tsx`) —
-  글자 등장 → 카운터 0→100 + 진행 바 → 커버가 위로 걷힘.
-  네 단계가 물려 있어 CSS 키프레임 네 벌보다 타임라인 하나가 읽기 쉽다
-- **스크롤 애니메이션은 anime.js를 쓰지 않는다.** CSS `animation-timeline`이 같은 일을 하는데
-  JS가 0줄이고 서버 컴포넌트를 클라이언트로 바꾸지 않아도 된다
-- 히어로는 **다크 구간**이다 — 뒤에 `Starfield`(three.js)가 깔린다.
-  본문(`main`)이 `bg-surface`로 덮으면서 라이트로 돌아온다.
-  스타필드는 히어로를 벗어나면 렌더 루프를 멈춘다
-- 헤더는 `mix-blend-difference` — 다크 히어로 위에서는 흰 글씨, 라이트 본문에서는 검은 글씨가
-  **자동으로** 된다. 스크롤 위치를 JS로 감지하지 않는다.
-  배경 레이어만 따로 두고 scroll timeline으로 밝아지게 했다
-- 클라이언트 컴포넌트는 `SiteNav` · `IntroCover` · `Starfield` **셋뿐**. 나머지는 전부 서버 컴포넌트
+`.claude/rules/structure.md`의 `components/`, `constants/`, `types/`, `hooks/`, `lib/`와
+라우트 그룹은 **하나도 만들지 않았다.** 해당 코드가 실제로 생길 때 규칙대로 만든다.
+미리 폴더를 파두지 않는다.
 
 ## 상세 규칙
 
