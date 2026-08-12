@@ -40,6 +40,27 @@ const INITIAL_ZOOM = 2;
 const PARALLAX_X = 18;
 const PARALLAX_Y = 12;
 
+/**
+ * 지구본 팔레트 — "우주에 떠 있는 행성".
+ *
+ * 별하늘 배경(#0a0a24)이 청보라, 별빛이 민트·제이드다. 지구는 그보다 청록 쪽으로
+ * 빼서 우주와 구분되게 하고, 해안선만 별과 같은 제이드로 밝혀 윤곽이 빛나 보이게 한다.
+ */
+const GLOBE = {
+  /** 바다. 우주보다 밝아야 구체가 배경에서 떨어져 보인다. */
+  ocean: "#143647",
+  /** 대륙. 바다보다 한 단계 밝은 심록. */
+  land: "#2b6664",
+  /** 해안선. 별 팔레트의 제이드와 같은 색이다. */
+  coast: "#5fe6a0",
+  /** 나라 사이 경계. 해안선보다 훨씬 약하게 — 안 그러면 지구가 그물처럼 보인다. */
+  border: "#52a08f",
+  /** 우주. 별하늘 배경과 같은 색이라 대기 후광이 자연스럽게 이어진다. */
+  space: "#0a0a24",
+  /** 대기 지평선. */
+  horizon: "#2b7f96",
+} as const;
+
 export function WorldMap() {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -81,6 +102,48 @@ export function WorldMap() {
       // 나중에 스타일을 갈아끼워도 지구본이 유지되게 한다.
       // (전환 순간은 인트로 커버에 가려서 보이지 않는다.)
       map.setProjection({ type: "globe" });
+
+      // 데모 스타일 위에 우리 팔레트를 덮어쓴다.
+      // 레이어 존재를 매번 확인한다 — 우리가 소유한 스타일이 아니라 언제든 바뀔 수 있다.
+      // (setPaintProperty 의 키 타입이 재노출되지 않아 헬퍼로 감싸지 않고 그대로 부른다.)
+      if (map.getLayer("background")) {
+        map.setPaintProperty("background", "background-color", GLOBE.ocean);
+      }
+      if (map.getLayer("countries-fill")) {
+        map.setPaintProperty("countries-fill", "fill-color", GLOBE.land);
+      }
+      if (map.getLayer("crimea-fill")) {
+        map.setPaintProperty("crimea-fill", "fill-color", GLOBE.land);
+      }
+      if (map.getLayer("coastline")) {
+        map.setPaintProperty("coastline", "line-color", GLOBE.coast);
+        map.setPaintProperty("coastline", "line-width", 0.9);
+        map.setPaintProperty("coastline", "line-opacity", 0.62);
+      }
+      if (map.getLayer("countries-boundary")) {
+        map.setPaintProperty("countries-boundary", "line-color", GLOBE.border);
+        map.setPaintProperty("countries-boundary", "line-width", 0.5);
+        map.setPaintProperty("countries-boundary", "line-opacity", 0.45);
+      }
+
+      // 경위선 격자는 뺀다 — 앞서 choropleth 에서도 지웠던 것과 같은 판단이다
+      if (map.getLayer("geolines")) map.removeLayer("geolines");
+
+      /**
+       * 대기 후광. 지구 가장자리가 은은하게 빛나면서 우주로 번진다.
+       *
+       * `fog-*` 는 넣지 않는다 — 스펙상 **3D 지형이 있어야 동작**하는 값이라
+       * 우리 지도에서는 아무 일도 하지 않는다.
+       *
+       * `atmosphere-blend` 가 손잡이다 — 올릴수록 후광이 두꺼워지는데,
+       * **너무 올리면 뒤의 별하늘을 덮어버린다.** 별이 흐려 보이면 이 값을 낮춘다.
+       */
+      map.setSky({
+        "sky-color": GLOBE.space,
+        "horizon-color": GLOBE.horizon,
+        "sky-horizon-blend": 0.8,
+        "atmosphere-blend": 0.5,
+      });
     });
 
     map.on("error", (event) => {
