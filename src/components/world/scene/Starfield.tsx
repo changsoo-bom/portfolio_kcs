@@ -20,6 +20,13 @@ const CONFIG = {
   pointSize: 50,
   brightness: 1.85,
   twinkle: 1,
+  repelRadius: 5,
+  repelStrength: 0.35,
+  /**
+   * 커서에 따른 카메라 오프셋. 원본 스펙은 0.6 인데 지도를 드래그할 때
+   * 배경까지 크게 흔들려 어지러워서 낮췄다.
+   */
+  parallax: 0.25,
 } as const;
 
 const COUNT = 4200;
@@ -112,12 +119,16 @@ void main(){
 }
 `;
 
+/** 이보다 작게 움직였으면 다시 그리지 않는다. */
+const SETTLE_EPSILON = 1e-4;
+
 /**
- * 정지된 별하늘 배경.
+ * 별하늘 배경.
  *
- * 흐름·회전·커서 반응 없이 **한 장만 그리고 멈춘다.** 애니메이션 루프가 없어서
- * 지도 조작 중에도 GPU 를 나눠 쓰지 않고, 시선도 지도 쪽에 남는다.
- * 크기가 바뀔 때만 다시 그린다.
+ * **별은 흐르지도 돌지도 반짝이지도 않는다** — 시간이 고정되어 있다.
+ * 움직이는 것은 커서 반응뿐이다: 근처 별이 밀려나고 카메라가 살짝 따라간다.
+ *
+ * 모든 값이 수렴하면 렌더를 멈춘다. 마우스를 놓아두면 GPU 를 지도에 온전히 넘긴다.
  */
 export function Starfield() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -126,7 +137,14 @@ export function Starfield() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const renderer = new THREE.WebGL1Renderer({ canvas, antialias: true });
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    // WebGL1Renderer 를 쓰면 안 된다 — r143 에서 그건 WebGLRenderer 에 플래그만 세워
+    // WebGL1 경로를 강제하는 폐기 예정 클래스이고, 포스트프로세싱 렌더타깃 업로드에서
+    // "texImage2D: Overload resolution failed" 로 터진다. MapLibre 도 WebGL2 를 쓴다.
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     // 지도가 이미 GPU 를 쓰고 있어서 3배 화면까지 따라가지 않는다
     const pixelRatio = Math.min(window.devicePixelRatio, 2);
     renderer.setPixelRatio(pixelRatio);
@@ -185,7 +203,8 @@ export function Starfield() {
       vertexShader: VERTEX_SHADER,
       fragmentShader: FRAGMENT_SHADER,
       uniforms: {
-        // 시간·흐름·커서는 전부 고정값이다 — 갱신하는 곳이 없다
+        // uTime 과 uDrift 는 고정 — 반짝임도 흐름도 갱신하지 않는다.
+        // 매 프레임 바뀌는 건 uCursor 와 uActivity 뿐이다.
         uTime: { value: FROZEN_TIME },
         uSize: { value: CONFIG.pointSize },
         uOpacity: { value: CONFIG.opacity },
@@ -193,8 +212,8 @@ export function Starfield() {
         uDepth: { value: DEPTH },
         uTwinkle: { value: CONFIG.twinkle },
         uCursor: { value: new THREE.Vector3() },
-        uRepelRadius: { value: 5 },
-        uRepelStrength: { value: 0 },
+        uRepelRadius: { value: CONFIG.repelRadius },
+        uRepelStrength: { value: CONFIG.repelStrength },
         uActivity: { value: 0 },
         uColorA: { value: hexToVec3(CONFIG.colorA) },
         uColorB: { value: hexToVec3(CONFIG.colorB) },
@@ -241,11 +260,109 @@ export function Starfield() {
       for (const composer of composers) composer.render();
     };
 
-    for (const composer of composers) {
-      composer.setPixelRatio(pixelRatio);
-      composer.setSize(window.innerWidth, window.innerHeight);
-    }
+    /**
+     * r143 EffectComposer 는 렌더타깃 크기를 `width * pixelRatio` 로 계산하면서
+     * **반올림을 하지 않는다.** 윈도우 디스플레이 배율 125% 면 devicePixelRatio 가
+     * 1.25 라서 1537 * 1.25 = 1921.25 같은 소수 크기가 나오고,
+     * texImage2D / texSubImage2D 가 "Overload resolution failed" 로 터진다.
+     *
+     * 그래서 컴포저에는 배율을 넘기지 않고 **정수로 반올림한 픽셀 크기**를 직접 준다.
+     * 렌더러 쪽 배율은 그대로 두어 선명도는 유지된다.
+     */
+    const resizeComposers = (width: number, height: number, ratio: number) => {
+      const pixelWidth = Math.round(width * ratio);
+      const pixelHeight = Math.round(height * ratio);
+      for (const composer of composers) {
+        composer.setPixelRatio(1);
+        composer.setSize(pixelWidth, pixelHeight);
+      }
+    };
+
+    resizeComposers(window.innerWidth, window.innerHeight, pixelRatio);
     draw();
+
+    // ── 커서 반응
+    const pointer = {
+      ndc: new THREE.Vector2(),
+      smooth: new THREE.Vector2(),
+      world: new THREE.Vector3(),
+      activity: 0,
+      active: false,
+      lastMove: 0,
+    };
+    const target = new THREE.Vector3();
+    const rayDir = new THREE.Vector3();
+    const previousWorld = new THREE.Vector3();
+    let frame = 0;
+
+    const onMouseMove = (event: MouseEvent) => {
+      pointer.ndc.x = (event.clientX / window.innerWidth) * 2 - 1;
+      pointer.ndc.y = -((event.clientY / window.innerHeight) * 2 - 1);
+      pointer.active = true;
+      pointer.lastMove = performance.now();
+    };
+    const onMouseOut = () => {
+      pointer.active = false;
+    };
+
+    /** 이번 프레임에 실제로 움직인 양을 돌려준다. 0 에 가까우면 그리지 않는다. */
+    const update = () => {
+      let change = 0;
+
+      const nextX =
+        pointer.smooth.x + (pointer.ndc.x - pointer.smooth.x) * 0.06;
+      const nextY =
+        pointer.smooth.y + (pointer.ndc.y - pointer.smooth.y) * 0.06;
+      change += Math.abs(nextX - pointer.smooth.x);
+      change += Math.abs(nextY - pointer.smooth.y);
+      pointer.smooth.set(nextX, nextY);
+
+      // 커서 NDC 를 z=0 평면과 교차시켜 월드 좌표를 얻는다
+      target.set(0, 0, 0);
+      if (pointer.active) {
+        rayDir
+          .set(pointer.ndc.x, pointer.ndc.y, 0.5)
+          .unproject(camera)
+          .sub(camera.position)
+          .normalize();
+        if (Math.abs(rayDir.z) > 1e-4) {
+          const t = -camera.position.z / rayDir.z;
+          if (t > 0 && Number.isFinite(t)) {
+            target.copy(camera.position).addScaledVector(rayDir, t);
+          }
+        }
+      }
+      previousWorld.copy(pointer.world);
+      pointer.world.lerp(target, 0.12);
+      change += previousWorld.distanceTo(pointer.world);
+
+      const idle = (performance.now() - pointer.lastMove) / 1000;
+      const want = pointer.active && idle < 3 ? 1 : 0;
+      const nextActivity = pointer.activity + (want - pointer.activity) * 0.06;
+      change += Math.abs(nextActivity - pointer.activity);
+      pointer.activity = nextActivity;
+
+      material.uniforms.uCursor.value.copy(pointer.world);
+      material.uniforms.uActivity.value = pointer.activity;
+
+      const px = pointer.smooth.x * CONFIG.parallax;
+      const py = pointer.smooth.y * CONFIG.parallax;
+      camera.position.set(px, py, 5);
+      camera.lookAt(px, py, -10);
+
+      return change;
+    };
+
+    const loop = () => {
+      if (update() > SETTLE_EPSILON) draw();
+      frame = requestAnimationFrame(loop);
+    };
+
+    if (!reduceMotion) {
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseout", onMouseOut);
+      frame = requestAnimationFrame(loop);
+    }
 
     const onResize = () => {
       const width = window.innerWidth;
@@ -255,15 +372,15 @@ export function Starfield() {
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      for (const composer of composers) {
-        composer.setPixelRatio(ratio);
-        composer.setSize(width, height);
-      }
+      resizeComposers(width, height, ratio);
       draw();
     };
     window.addEventListener("resize", onResize);
 
     return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseout", onMouseOut);
       window.removeEventListener("resize", onResize);
       // r143 의 EffectComposer 에는 dispose() 가 없다 — 렌더타깃을 직접 정리한다
       for (const composer of composers) {
