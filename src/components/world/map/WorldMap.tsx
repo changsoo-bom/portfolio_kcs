@@ -32,6 +32,10 @@ const STYLE_URL = "https://demotiles.maplibre.org/style.json";
  */
 const WORKER_URL = "/maplibre-gl-worker.mjs";
 
+const INITIAL_CENTER: [number, number] = [0, 20];
+/** 시작 배율. 올릴수록 지구가 크게 잡힌다. */
+const INITIAL_ZOOM = 2;
+
 export function WorldMap() {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -45,9 +49,27 @@ export function WorldMap() {
     const map = new MapLibreMap({
       container,
       style: STYLE_URL,
-      center: [0, 20],
-      zoom: 1,
+      center: INITIAL_CENTER,
+      zoom: INITIAL_ZOOM,
     });
+
+    /**
+     * 데모 스타일의 라벨(symbol) 레이어를 걷어낸다.
+     *
+     * 두 가지를 동시에 해결한다.
+     * 1. 데모용 국가명 라벨은 우리 디자인에 필요 없다.
+     * 2. 라벨을 그리려면 글리프 아틀라스를 GPU 에 올려야 하는데, 그 경로가
+     *    `texSubImage2D(..., ALPHA, UNSIGNED_BYTE, data)` 로
+     *    "Overload resolution failed" 를 내고 있었다. 라벨이 없으면 호출 자체가 없다.
+     *
+     * load 가 아니라 styledata 에서 지운다 — load 는 첫 렌더가 끝난 뒤라 이미 늦다.
+     */
+    const stripLabels = () => {
+      for (const layer of map.getStyle().layers) {
+        if (layer.type === "symbol") map.removeLayer(layer.id);
+      }
+    };
+    map.on("styledata", stripLabels);
 
     map.on("load", () => {
       // 3D 지구본 투영. MapOptions 에는 없는 값이라 스타일이 로드된 뒤에 지정한다.
