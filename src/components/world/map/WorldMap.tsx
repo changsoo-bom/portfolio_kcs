@@ -152,6 +152,13 @@ const TOOLTIP_FLIP_EDGE = 200;
 const FIT_PADDING = 96;
 /** 룩셈부르크 같은 작은 나라에서 과하게 파고들지 않게 막는다. */
 const FIT_MAX_ZOOM = 5.5;
+/**
+ * 지역을 눌렀을 때의 상한. 나라보다 높아야 한 단계 더 들어가는 게 된다.
+ *
+ * REGION_MAX_ZOOM 보다 살짝 아래로 잡았다 — 딱 그 값으로 가면 도착하는 순간
+ * 지역 레이어가 꺼져서 방금 고른 것이 하이라이트도 안 되고 다시 누를 수도 없다.
+ */
+const REGION_FIT_MAX_ZOOM = 8.5;
 const FIT_DURATION = 1600;
 
 const DEG = Math.PI / 180;
@@ -666,7 +673,11 @@ export function WorldMap() {
      *
      * 벡터 타일은 나라를 타일 경계마다 잘라 두므로 같은 id 조각을 전부 모은다.
      */
-    const screenBoxOf = (id: number, anchor: { lng: number; lat: number }) => {
+    const screenBoxOf = (
+      id: number,
+      anchor: { lng: number; lat: number },
+      layer: string,
+    ) => {
       const center = map.getCenter();
       const centerLat = center.lat * DEG;
       const sinCenter = Math.sin(centerLat);
@@ -686,7 +697,7 @@ export function WorldMap() {
       let right = -Infinity;
       let bottom = -Infinity;
 
-      for (const part of map.queryRenderedFeatures({ layers: [FILL_LAYER] })) {
+      for (const part of map.queryRenderedFeatures({ layers: [layer] })) {
         if (part.id !== id) continue;
 
         const { geometry } = part;
@@ -739,16 +750,23 @@ export function WorldMap() {
         layers: hoverLayers(),
       })[0];
       if (!feature || typeof feature.id !== "number") return;
-      // 지역 위에서 누른 거면 나라를 다시 맞추지 않는다 — 이미 들어와 있는데
-      // 나라 전체로 되돌리면 오히려 줌아웃된다
-      if (feature.layer.id === REGION_FILL) return;
 
-      const box = screenBoxOf(feature.id, event.lngLat);
+      /**
+       * 커서 밑에 지역이 있으면 지역으로, 없으면 나라로 맞춘다.
+       *
+       * 나라를 한 번 채운 뒤 그 안의 지역을 누르면 한 단계 더 들어가는 흐름이다.
+       * 상한을 나눠 둔 게 핵심 — 지역에도 나라 상한을 쓰면 이미 그 배율에 와
+       * 있어서 눌러도 아무 일이 안 일어난다.
+       */
+      const layer = feature.layer.id;
+      const limit = layer === REGION_FILL ? REGION_FIT_MAX_ZOOM : FIT_MAX_ZOOM;
+
+      const box = screenBoxOf(feature.id, event.lngLat, layer);
       // 조각을 못 찾으면(있을 리 없지만) 최소한 클릭한 지점은 가운데로 보낸다
       if (!box) {
         map.flyTo({
           center: event.lngLat,
-          zoom: FIT_MAX_ZOOM,
+          zoom: limit,
           duration: FIT_DURATION,
         });
         return;
@@ -771,10 +789,7 @@ export function WorldMap() {
         ]),
         // 배율은 2^zoom 에 비례하므로 로그를 취해 현재 배율에 더한다.
         // 음수는 자른다 — 나라를 클릭했는데 줌아웃되면 그게 제일 이상하다.
-        zoom: Math.min(
-          map.getZoom() + Math.max(Math.log2(scale), 0),
-          FIT_MAX_ZOOM,
-        ),
+        zoom: Math.min(map.getZoom() + Math.max(Math.log2(scale), 0), limit),
         duration: FIT_DURATION,
       });
     });
