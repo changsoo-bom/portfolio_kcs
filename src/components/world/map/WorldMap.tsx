@@ -48,17 +48,17 @@ const PARALLAX_Y = 12;
  */
 const GLOBE = {
   /** 바다. 우주보다 밝아야 구체가 배경에서 떨어져 보인다. */
-  ocean: "#143647",
+  ocean: "#1d4960",
   /** 대륙. 바다보다 한 단계 밝은 심록. */
-  land: "#2b6664",
+  land: "#388582",
   /** 해안선. 별 팔레트의 제이드와 같은 색이다. */
   coast: "#5fe6a0",
   /** 나라 사이 경계. 해안선보다 훨씬 약하게 — 안 그러면 지구가 그물처럼 보인다. */
-  border: "#52a08f",
+  border: "#62c0ac",
   /** 우주. 별하늘 배경과 같은 색이라 대기 후광이 자연스럽게 이어진다. */
   space: "#0a0a24",
   /** 대기 지평선. */
-  horizon: "#2b7f96",
+  horizon: "#369fbc",
 } as const;
 
 export function WorldMap() {
@@ -118,7 +118,7 @@ export function WorldMap() {
       if (map.getLayer("coastline")) {
         map.setPaintProperty("coastline", "line-color", GLOBE.coast);
         map.setPaintProperty("coastline", "line-width", 0.9);
-        map.setPaintProperty("coastline", "line-opacity", 0.62);
+        map.setPaintProperty("coastline", "line-opacity", 0.78);
       }
       if (map.getLayer("countries-boundary")) {
         map.setPaintProperty("countries-boundary", "line-color", GLOBE.border);
@@ -142,7 +142,7 @@ export function WorldMap() {
         "sky-color": GLOBE.space,
         "horizon-color": GLOBE.horizon,
         "sky-horizon-blend": 0.8,
-        "atmosphere-blend": 0.5,
+        "atmosphere-blend": 0.35,
       });
     });
 
