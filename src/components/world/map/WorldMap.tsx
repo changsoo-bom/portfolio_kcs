@@ -55,6 +55,13 @@ const DETAIL_FROM = 4;
 const DETAIL_TO = 5.5;
 
 /**
+ * 지구 표면은 **처음부터 끝까지 위성 사진이다.** 벡터 소스가 하는 일은
+ * 사진 위에 얹는 것뿐 — 도로·행정경계·지명, 그리고 호버 판정용 면이다.
+ *
+ * 그래서 위 구간은 이제 지형이 아니라 **주기(annotation)가 올라오는 구간**이다.
+ */
+
+/**
  * 위성 사진. Sentinel-2 cloudless (EOX).
  *
  * **비상업 한정이다** — CC BY-NC-SA 4.0. 이 프로젝트에는 맞지만 상업 전환 시
@@ -69,9 +76,6 @@ const SATELLITE = "satellite";
 const SATELLITE_TILES =
   "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg";
 const SATELLITE_MAX_ZOOM = 14;
-/** 벡터 지형이 다 올라온 뒤에 그 위를 덮기 시작한다. */
-const SATELLITE_FROM = DETAIL_TO;
-const SATELLITE_TO = 7;
 
 /**
  * 행정구역(admin-1) 면. `scripts/build-admin1.mjs` 가 만든다.
@@ -119,23 +123,33 @@ const BACKFACE_COS = 0.1;
  * 별하늘 배경(#0a0a24)이 청보라, 별빛이 민트·제이드다. 지구는 그보다 청록 쪽으로
  * 빼서 우주와 구분되게 하고, 윤곽만 별과 같은 제이드로 밝혀 빛나 보이게 한다.
  */
+/**
+ * 역할마다 색을 갈라 셋으로 나눴다. 겹쳐 그려도 무엇이 무엇인지 구분된다.
+ *   경계선 = 제이드 / 호버 = 같은 계열의 밝은 쪽 / 도로 = 유일하게 따뜻한 쪽
+ *
+ * 한때 경계선을 시안(#5fe0ff)으로 옮겼었다. 고채도 시안은 자연에 거의 없어서
+ * 사진 위에서 가장 확실히 읽히기 때문인데, **눈에 너무 세게 박혔다.**
+ * 별하늘이 제이드 계열이라 시안은 화면 전체의 색 조합에서도 겉돌았다.
+ *
+ * 그래서 제이드로 돌아오되 세기는 낮춘 채로 뒀다. 대신 알아둘 것 —
+ * **제이드는 식생 초록과 색상이 가까워 삼림 위에서 대비가 가장 약하다.**
+ * 아마존이나 시베리아 타이가에서 경계선이 흐리면 그게 원인이다.
+ */
 const GLOBE = {
-  ocean: "#1d4960",
-  land: "#388582",
-  /** 호버한 나라. 대륙보다 밝고 제이드 쪽으로 기울인다. */
-  hover: "#4aa892",
-  /** 윤곽선. 별 팔레트의 제이드와 같은 색이다. */
-  outline: "#5fe6a0",
+  /** 사진 타일이 도착하기 전 구를 채우는 색. 우주색에 붙여 둬야 덜 튄다. */
+  ocean: "#0d2233",
   space: "#0a0a24",
   horizon: "#369fbc",
-  // ── 확대했을 때만 보이는 것들. 전부 땅색에서 갈라져 나온 톤이다.
-  wood: "#2e7b70",
-  grass: "#3f8f7c",
-  sand: "#6f9a86",
-  ice: "#cdeee8",
-  road: "#a8ecc9",
+
+  /** 별 팔레트의 제이드와 같은 색이다. */
+  line: "#5fe6a0",
+  /** 지형을 물들이는 게 아니라 밝기로 들어올린다. 갈색이든 초록이든 통한다. */
+  hover: "#b6f5d5",
+  /** 경계선과 싸우지 않게 반대편으로 뺐다. */
+  road: "#ffe3b0",
   label: "#eafff2",
-  labelHalo: "#08303a",
+  /** 사진은 밝은 데가 많다. 할로가 어두워야 글자가 버틴다. */
+  labelHalo: "#04121a",
 } as const;
 
 export function WorldMap() {
@@ -205,155 +219,55 @@ export function WorldMap() {
         },
         layers: [
           {
-            // 저배율에서는 바다, 고배율에서는 땅이다 — 위 DETAIL_FROM 주석 참고
+            // 사진 타일이 도착하기 전까지 구를 채워 두는 색이다
             id: "ground",
             type: "background",
-            paint: {
-              "background-color": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                DETAIL_FROM,
-                GLOBE.ocean,
-                DETAIL_TO,
-                GLOBE.land,
-              ],
-            },
+            paint: { "background-color": GLOBE.ocean },
           },
+          {
+            id: "satellite",
+            type: "raster",
+            source: SATELLITE,
+            paint: { "raster-opacity": 1 },
+          },
+          /**
+           * 나라 호버 대상. **사진을 가리면 안 되므로 평소에는 완전히 투명하다.**
+           * 투명해도 조회는 된다 — queryRenderedFeatures 는 배율 범위와 visibility
+           * 만 보고 불투명도는 따지지 않는다. 호버·클릭 판정이 전부 이 레이어를 탄다.
+           */
           {
             id: FILL_LAYER,
             type: "fill",
             source: SOURCE,
             "source-layer": SOURCE_LAYER,
             paint: {
-              "fill-color": [
-                "case",
-                ["boolean", ["feature-state", "hover"], false],
-                GLOBE.hover,
-                GLOBE.land,
-              ],
-              "fill-color-transition": { duration: 160, delay: 0 },
-              // 배경이 땅색을 넘겨받는 만큼 빠진다. maxzoom 을 주면 안 된다 —
-              // 호버·클릭 판정이 이 레이어를 조회하므로 계속 살아 있어야 한다.
+              "fill-color": GLOBE.hover,
+              /**
+               * 지역 레이어가 꺼지는 배율 위로는 색도 끊는다. 나라 하나가 이미
+               * 화면을 다 채우고 있어서, 칠하면 화면 전체가 물든다.
+               * 레이어 자체는 계속 살려 둔다 — 조회 경로가 여기를 탄다.
+               *
+               * **step 이 바깥이어야 한다.** `["zoom"]` 은 최상위 step/interpolate 의
+               * 입력으로만 쓸 수 있어서, case 안에 넣으면 paint 파싱이 실패하고
+               * 스타일 로드가 통째로 엎어진다 — 레이어가 하나도 안 남는다.
+               */
               "fill-opacity": [
-                "interpolate",
-                ["linear"],
+                "step",
                 ["zoom"],
-                DETAIL_FROM,
-                1,
-                DETAIL_TO,
+                [
+                  "case",
+                  ["boolean", ["feature-state", "hover"], false],
+                  0.28,
+                  0,
+                ],
+                REGION_MAX_ZOOM,
                 0,
               ],
+              "fill-opacity-transition": { duration: 160, delay: 0 },
             },
           },
 
-          // ── 여기부터 상세 지형
-          {
-            id: "landcover",
-            type: "fill",
-            source: DETAIL,
-            "source-layer": "landcover",
-            minzoom: DETAIL_FROM,
-            // 위성이 완전히 덮은 뒤에는 그려봐야 안 보인다
-            maxzoom: SATELLITE_TO,
-            paint: {
-              "fill-color": [
-                "match",
-                ["get", "class"],
-                ["wood", "forest"],
-                GLOBE.wood,
-                ["grass", "farmland"],
-                GLOBE.grass,
-                ["sand", "rock"],
-                GLOBE.sand,
-                ["ice", "snow", "glacier"],
-                GLOBE.ice,
-                GLOBE.land,
-              ],
-              "fill-opacity": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                DETAIL_FROM,
-                0,
-                DETAIL_TO,
-                0.55,
-              ],
-            },
-          },
-          {
-            id: "park",
-            type: "fill",
-            source: DETAIL,
-            "source-layer": "park",
-            minzoom: 6,
-            maxzoom: SATELLITE_TO,
-            paint: { "fill-color": GLOBE.grass, "fill-opacity": 0.3 },
-          },
-          {
-            id: "water",
-            type: "fill",
-            source: DETAIL,
-            "source-layer": "water",
-            minzoom: DETAIL_FROM,
-            maxzoom: SATELLITE_TO,
-            paint: {
-              "fill-color": GLOBE.ocean,
-              "fill-opacity": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                DETAIL_FROM,
-                0,
-                DETAIL_TO,
-                1,
-              ],
-            },
-          },
-          {
-            id: "waterway",
-            type: "line",
-            source: DETAIL,
-            "source-layer": "waterway",
-            minzoom: 6,
-            maxzoom: SATELLITE_TO,
-            paint: {
-              "line-color": GLOBE.ocean,
-              "line-width": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                6,
-                0.5,
-                SATELLITE_TO,
-                2,
-              ],
-            },
-          },
-          /**
-           * 위성 사진. 여기부터 아래 벡터 면들을 덮는다.
-           *
-           * 도로·경계선·지명은 **이 위에** 그린다 — 사진만 있으면 어디가 어딘지
-           * 읽히지 않는다. 반대로 물·녹지 면은 사진이 같은 정보를 더 잘 보여주므로
-           * 위에서 maxzoom 으로 끊었다.
-           */
-          {
-            id: "satellite",
-            type: "raster",
-            source: SATELLITE,
-            minzoom: SATELLITE_FROM,
-            paint: {
-              "raster-opacity": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                SATELLITE_FROM,
-                0,
-                SATELLITE_TO,
-                1,
-              ],
-            },
-          },
+          // ── 여기부터 사진 위에 얹는 주기(annotation)
           // 작은 길이 큰 길 밑에 깔리도록 순서를 지킨다
           {
             id: "road-minor",
@@ -370,7 +284,7 @@ export function WorldMap() {
             ],
             paint: {
               "line-color": GLOBE.road,
-              "line-opacity": 0.28,
+              "line-opacity": 0.22,
               "line-width": [
                 "interpolate",
                 ["linear"],
@@ -397,7 +311,7 @@ export function WorldMap() {
             ],
             paint: {
               "line-color": GLOBE.road,
-              "line-opacity": 0.45,
+              "line-opacity": 0.4,
               "line-width": [
                 "interpolate",
                 ["linear"],
@@ -427,10 +341,11 @@ export function WorldMap() {
             maxzoom: REGION_MAX_ZOOM,
             paint: {
               "fill-color": GLOBE.hover,
+              // 지역은 나라보다 좁아서 조금 더 진해야 같은 세기로 읽힌다
               "fill-opacity": [
                 "case",
                 ["boolean", ["feature-state", "hover"], false],
-                0.4,
+                0.34,
                 0,
               ],
               "fill-opacity-transition": { duration: 160, delay: 0 },
@@ -448,9 +363,9 @@ export function WorldMap() {
               ["!=", ["get", "maritime"], 1],
             ],
             paint: {
-              "line-color": GLOBE.outline,
+              "line-color": GLOBE.line,
               "line-width": 1.1,
-              "line-opacity": 0.7,
+              "line-opacity": 0.5,
               // 나라 경계(실선)와 구분되게 점선을 유지하되 간격을 좁힌다
               "line-dasharray": [3, 1.5],
             },
@@ -467,8 +382,8 @@ export function WorldMap() {
               ["!=", ["get", "maritime"], 1],
             ],
             paint: {
-              "line-color": GLOBE.outline,
-              "line-width": 1,
+              "line-color": GLOBE.line,
+              "line-width": 1.2,
               "line-opacity": [
                 "interpolate",
                 ["linear"],
@@ -476,7 +391,7 @@ export function WorldMap() {
                 DETAIL_FROM,
                 0,
                 DETAIL_TO,
-                0.8,
+                0.75,
               ],
             },
           },
@@ -490,18 +405,18 @@ export function WorldMap() {
             "source-layer": SOURCE_LAYER,
             maxzoom: DETAIL_TO,
             paint: {
-              "line-color": GLOBE.outline,
-              "line-width": 2.4,
+              "line-color": GLOBE.line,
+              "line-width": 3,
               "line-opacity": [
                 "interpolate",
                 ["linear"],
                 ["zoom"],
                 DETAIL_FROM,
-                0.18,
+                0.2,
                 DETAIL_TO,
                 0,
               ],
-              "line-blur": 1.5,
+              "line-blur": 2,
             },
           },
           {
@@ -511,8 +426,8 @@ export function WorldMap() {
             "source-layer": SOURCE_LAYER,
             maxzoom: DETAIL_TO,
             paint: {
-              "line-color": GLOBE.outline,
-              "line-width": 0.7,
+              "line-color": GLOBE.line,
+              "line-width": 0.9,
               "line-opacity": [
                 "interpolate",
                 ["linear"],
@@ -563,7 +478,7 @@ export function WorldMap() {
             paint: {
               "text-color": GLOBE.label,
               "text-halo-color": GLOBE.labelHalo,
-              "text-halo-width": 1.2,
+              "text-halo-width": 1.5,
               "text-opacity": [
                 "interpolate",
                 ["linear"],
@@ -604,6 +519,14 @@ export function WorldMap() {
       const center = map.project(map.getCenter());
       return Math.hypot(x - center.x, y - center.y) <= radius;
     };
+
+    /**
+     * 조회할 레이어. **없는 id 를 넘기면 MapLibre 가 에러를 뿜고 빈 배열을 준다.**
+     * 스타일이 앉기 전에 mousemove 가 들어오면 아직 아무 레이어도 없고,
+     * region-fill 은 나라를 고르기 전이라도 존재하지만 순서상 먼저 걸린다.
+     */
+    const hoverLayers = () =>
+      [REGION_FILL, FILL_LAYER].filter((id) => map.getLayer(id));
 
     const clearHover = () => {
       if (!hovered) return;
@@ -646,7 +569,7 @@ export function WorldMap() {
        * 자동으로 빠지므로 나라로 떨어진다.
        */
       const feature = map.queryRenderedFeatures(point, {
-        layers: [REGION_FILL, FILL_LAYER],
+        layers: hoverLayers(),
       })[0];
 
       if (!feature || typeof feature.id !== "number") {
@@ -766,7 +689,7 @@ export function WorldMap() {
       if (!isOnGlobe(x, y)) return;
 
       const feature = map.queryRenderedFeatures([x, y], {
-        layers: [REGION_FILL, FILL_LAYER],
+        layers: hoverLayers(),
       })[0];
       if (!feature || typeof feature.id !== "number") return;
       // 지역 위에서 누른 거면 나라를 다시 맞추지 않는다 — 이미 들어와 있는데
