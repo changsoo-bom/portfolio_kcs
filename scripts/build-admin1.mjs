@@ -10,7 +10,7 @@
  * 294개 구역밖에 없다. 전 세계가 들어 있는 건 10m 뿐인데 38.8MB 라
  * 그대로는 브라우저에 못 올린다. 그래서 여기서 세 번 줄인다.
  *
- *   1. 속성 130여 개 → 4개 (25개 언어 이름과 FCLASS_* 분쟁 표기가 대부분이다)
+ *   1. 속성 130여 개 → 쓰는 것만 (FCLASS_* 분쟁 표기와 안 쓰는 언어를 버린다)
  *   2. Douglas–Peucker 간소화
  *   3. 좌표 소수점 4자리(약 11m) 반올림
  *
@@ -21,6 +21,10 @@
  *   node scripts/build-admin1.mjs
  */
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+
+import { LANGUAGES } from "../src/constants/languages.ts";
+
+const CODES = LANGUAGES.map((language) => language.code);
 
 const SOURCE =
   "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson";
@@ -158,15 +162,27 @@ for (const feature of source.features) {
   const country = feature.properties.adm0_a3;
   if (!country) continue;
 
+  /**
+   * 이름을 **평평하게** 넣는다. `{ names: { ko, en } }` 처럼 중첩하면
+   * MapLibre 가 GeoJSON 을 내부 벡터 타일로 바꿀 때 스칼라만 살아남아서
+   * 객체가 문자열로 뭉개진다.
+   *
+   * `name` 은 원어다 — 고른 언어와 영어가 둘 다 없을 때 마지막으로 떨어진다.
+   */
+  const properties = {
+    // "KR-11" 같은 ISO 3166-2 코드. 다음 단계에서 라우팅 키로 쓸 값이다.
+    code: feature.properties.iso_3166_2,
+    name: feature.properties.name,
+  };
+  for (const code of CODES) {
+    const value = feature.properties[`name_${code}`];
+    if (value) properties[`name_${code}`] = value;
+  }
+
   const bucket = byCountry.get(country) ?? [];
   bucket.push({
     type: "Feature",
-    properties: {
-      name: feature.properties.name_en ?? feature.properties.name,
-      name_ko: feature.properties.name_ko,
-      // "KR-11" 같은 ISO 3166-2 코드. 다음 단계에서 라우팅 키로 쓸 값이다.
-      code: feature.properties.iso_3166_2,
-    },
+    properties,
     geometry: { type, coordinates: reduced },
   });
   byCountry.set(country, bucket);

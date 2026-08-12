@@ -3,7 +3,14 @@
 import { GeoJSONSource, MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 
+import { SettingsControl } from "@/components/world/map/SettingsControl";
 import { ZoomControl } from "@/components/world/map/ZoomControl";
+import {
+  DEFAULT_LANGUAGE,
+  FALLBACK_LANGUAGE,
+  LANGUAGES,
+} from "@/constants/languages";
+import type { LanguageCode } from "@/constants/languages";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -43,6 +50,27 @@ const FILL_LAYER = "country-fill";
 const DETAIL_TILES = "https://tiles.openfreemap.org/planet";
 const DETAIL = "detail";
 const GLYPHS = "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
+const PLACE_LABEL = "place-label";
+
+/**
+ * 지명 라벨에 쓸 이름. OpenMapTiles 는 `name:ko` 처럼 콜론을 쓴다.
+ *
+ * 고른 언어 → 로마자 → 원어 순으로 떨어진다. 로마자를 중간에 둔 건, 예를 들어
+ * 독일어 이름이 없는 태국 지명이 갑자기 타이 문자로 튀는 것보다 낫기 때문이다.
+ */
+const labelTextField = (
+  language: LanguageCode,
+  // MapLibre 는 ExpressionSpecification 을 export 하지 않는다. 반환 타입을 안 적으면
+  // 배열이 (string | string[])[] 로 넓어져서 튜플 모양이 풀리고 대입이 막힌다.
+): ["coalesce", ["get", string], ["get", string], ["get", string]] => [
+  "coalesce",
+  ["get", `name:${language}`],
+  ["get", "name:latin"],
+  ["get", "name"],
+];
+
+/** 나라 이름 표. `scripts/build-country-names.mjs` 가 만든다. */
+const COUNTRY_NAMES_URL = "/country-names.json";
 /** 한글까지 들어 있는 폰트 스택. 별도 CJK 스택은 이 서버에 없다. */
 const FONT = ["Noto Sans Regular"];
 
@@ -175,7 +203,22 @@ export function WorldMap() {
    * 만들어진다. state 로 올리면 `set-state-in-effect` 에 걸리므로 ref 로 넘긴다.
    */
   const mapRef = useRef<MapLibreMap | null>(null);
-  const [hoveredName, setHoveredName] = useState<string | null>(null);
+  const [language, setLanguage] = useState<LanguageCode>(DEFAULT_LANGUAGE);
+  /**
+   * 호버한 대상의 **언어별 이름 전부**를 들고 있는다. 화면에 쓸 하나를 골라
+   * 담아두면 언어를 바꿨을 때 커서를 다시 움직여야 갱신된다.
+   */
+  const [hoveredNames, setHoveredNames] = useState<Record<
+    string,
+    string
+  > | null>(null);
+
+  const hoveredName = hoveredNames
+    ? (hoveredNames[language] ??
+      hoveredNames[FALLBACK_LANGUAGE] ??
+      hoveredNames.local ??
+      null)
+    : null;
 
   // 지도 인스턴스는 리렌더를 넘어 살아남아야 하므로 마운트 시 한 번만 만든다
   useEffect(() => {
@@ -426,7 +469,7 @@ export function WorldMap() {
           },
 
           {
-            id: "place-label",
+            id: PLACE_LABEL,
             type: "symbol",
             source: DETAIL,
             "source-layer": "place",
@@ -439,13 +482,8 @@ export function WorldMap() {
               false,
             ],
             layout: {
-              // 한국어 이름이 있으면 그걸 쓰고, 없으면 로마자 → 원어 순으로 떨어진다
-              "text-field": [
-                "coalesce",
-                ["get", "name:ko"],
-                ["get", "name:latin"],
-                ["get", "name"],
-              ],
+              // 언어를 바꾸면 아래 effect 가 이 속성만 갈아끼운다
+              "text-field": labelTextField(DEFAULT_LANGUAGE),
               "text-font": FONT,
               "text-size": [
                 "interpolate",
@@ -479,6 +517,18 @@ export function WorldMap() {
         ],
       },
     });
+
+    /**
+     * 나라 이름 표. 타일에는 영어 이름 하나뿐이라 따로 받아 둔다.
+     * 도착 전에 호버하면 영어로 나오고, 도착한 뒤부터 언어를 따른다.
+     */
+    let countryNames: Record<string, Record<string, string>> = {};
+    fetch(COUNTRY_NAMES_URL)
+      .then((response) => (response.ok ? response.json() : {}))
+      .then((table) => {
+        countryNames = table;
+      })
+      .catch(() => {});
 
     // ── 호버
     /**
@@ -518,7 +568,7 @@ export function WorldMap() {
       if (!hovered) return;
       map.removeFeatureState(hovered);
       hovered = null;
-      setHoveredName(null);
+      setHoveredNames(null);
       map.getCanvas().style.cursor = "";
     };
 
@@ -577,10 +627,21 @@ export function WorldMap() {
       map.setFeatureState(hovered, { hover: true });
 
       const { properties } = feature;
-      const name = isRegion
-        ? (properties.name_ko ?? properties.name)
-        : properties.NAME;
-      setHoveredName(typeof name === "string" ? name : null);
+      const names: Record<string, string> = {};
+
+      if (isRegion) {
+        // admin1 파일은 `name_ko` 처럼 밑줄이다 (타일의 `name:ko` 와 다르다)
+        for (const { code } of LANGUAGES) {
+          const value = properties[`name_${code}`];
+          if (typeof value === "string") names[code] = value;
+        }
+        if (typeof properties.name === "string") names.local = properties.name;
+      } else {
+        Object.assign(names, countryNames[String(properties.ADM0_A3)] ?? {});
+        if (typeof properties.NAME === "string") names.local = properties.NAME;
+      }
+
+      setHoveredNames(names);
       map.getCanvas().style.cursor = "pointer";
     };
 
@@ -788,6 +849,19 @@ export function WorldMap() {
     };
   }, []);
 
+  /**
+   * 라벨 언어 교체.
+   *
+   * 툴팁은 언어별 이름을 다 들고 있어서 리렌더만으로 따라오는데, 지도 라벨은
+   * 스타일 안에 박혀 있어 여기서 속성 하나를 갈아끼운다.
+   * 마운트 직후에는 스타일이 아직 없을 수 있어 레이어 존재를 확인한다.
+   */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map?.getLayer(PLACE_LABEL)) return;
+    map.setLayoutProperty(PLACE_LABEL, "text-field", labelTextField(language));
+  }, [language]);
+
   return (
     // z-10 으로 별필드 위에 올린다.
     // 커서를 따라 지도를 CSS 로 밀던 패럴랙스는 뺐다 — 지도가 커서 밑에서
@@ -815,23 +889,28 @@ export function WorldMap() {
         {hoveredName}
       </div>
 
-      <ZoomControl
-        min={MIN_ZOOM}
-        max={MAX_ZOOM}
-        sliderRef={sliderRef}
-        percentRef={percentRef}
-        // 드래그는 즉시 따라와야 하므로 애니메이션 없이 옮긴다
-        onSlide={(zoom) => mapRef.current?.setZoom(zoom)}
-        onStep={(direction) => {
-          const map = mapRef.current;
-          if (!map) return;
-          // easeTo 는 min/maxZoom 을 알아서 지킨다
-          map.easeTo({
-            zoom: map.getZoom() + direction * ZOOM_STEP,
-            duration: 260,
-          });
-        }}
-      />
+      {/* 두 컨트롤을 한 컬럼에 묶는다 — 따로 고정하면 간격을 손으로 맞춰야 한다 */}
+      <div className="fixed top-6 left-6 z-20 flex flex-col items-center gap-2">
+        <ZoomControl
+          min={MIN_ZOOM}
+          max={MAX_ZOOM}
+          sliderRef={sliderRef}
+          percentRef={percentRef}
+          // 드래그는 즉시 따라와야 하므로 애니메이션 없이 옮긴다
+          onSlide={(zoom) => mapRef.current?.setZoom(zoom)}
+          onStep={(direction) => {
+            const map = mapRef.current;
+            if (!map) return;
+            // easeTo 는 min/maxZoom 을 알아서 지킨다
+            map.easeTo({
+              zoom: map.getZoom() + direction * ZOOM_STEP,
+              duration: 260,
+            });
+          }}
+        />
+
+        <SettingsControl language={language} onLanguageChange={setLanguage} />
+      </div>
     </div>
   );
 }
