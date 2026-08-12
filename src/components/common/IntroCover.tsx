@@ -78,7 +78,7 @@ export function IntroCover() {
         <div
           key={index}
           data-panel
-          className="absolute inset-y-0 bg-[#0a0a0a]"
+          className="absolute inset-y-0 bg-[#ededed]"
           style={{
             left: `${(index * 100) / PANEL_COUNT}%`,
             // 1px 여유로 패널 사이 서브픽셀 이음매를 덮는다
@@ -91,7 +91,7 @@ export function IntroCover() {
         data-status
         className="relative flex h-full flex-col items-center justify-center"
       >
-        <div className="w-[80vw] max-w-2xl text-[#ededed]">
+        <div className="w-[80vw] max-w-2xl text-[#0a0a0a]">
           <div className="flex items-end justify-between pb-5 font-mono">
             <span className="text-sm tracking-[0.4em] sm:text-base">LOADING</span>
             <span className="flex items-center gap-1 leading-none font-medium tabular-nums">
@@ -101,11 +101,11 @@ export function IntroCover() {
               <span className="text-base sm:text-lg">%</span>
             </span>
           </div>
-          <div className="h-[3px] w-full bg-[#ededed]/25">
+          <div className="h-[3px] w-full bg-[#0a0a0a]/25">
             {/* Tailwind의 scale-* 는 CSS scale 속성이라 anime.js의 transform 과 겹친다 — 인라인 transform 으로 통일 */}
             <div
               data-fill
-              className="h-full w-full origin-left bg-[#ededed]"
+              className="h-full w-full origin-left bg-[#0a0a0a]"
               style={{ transform: "scaleX(0)" }}
             />
           </div>
