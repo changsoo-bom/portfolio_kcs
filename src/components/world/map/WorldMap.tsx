@@ -36,6 +36,10 @@ const INITIAL_CENTER: [number, number] = [0, 20];
 /** 시작 배율. 올릴수록 지구가 크게 잡힌다. */
 const INITIAL_ZOOM = 2;
 
+/** 커서에 따라 지구가 밀리는 최대 거리(px). 화면 끝까지 갔을 때의 값이다. */
+const PARALLAX_X = 18;
+const PARALLAX_Y = 12;
+
 export function WorldMap() {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -86,11 +90,44 @@ export function WorldMap() {
     return () => map.remove();
   }, []);
 
+  /**
+   * 커서를 따라 지구가 XY 로 조금씩 밀린다 — 별필드의 패럴랙스와 같은 성격이다.
+   *
+   * 지도 카메라(중심 좌표)를 건드리지 않고 **컨테이너를 CSS 로 옮긴다.** 그래서
+   * 좌표계·드래그·줌과 아무 상관이 없고, MapLibre 를 다시 그리지도 않는다.
+   * 이징은 CSS transition 이 처리하므로 애니메이션 루프도 필요 없다.
+   *
+   * 커서 반대 방향으로 움직인다 — 별필드에서 카메라가 커서 쪽으로 가면서
+   * 별이 반대로 밀리는 것과 방향을 맞췄다.
+   */
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const onMouseMove = (event: MouseEvent) => {
+      const x = (event.clientX / window.innerWidth) * 2 - 1;
+      const y = (event.clientY / window.innerHeight) * 2 - 1;
+      container.style.transform = `translate3d(${-x * PARALLAX_X}px, ${-y * PARALLAX_Y}px, 0)`;
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      container.style.transform = "";
+    };
+  }, []);
+
   // absolute + inset-0 을 쓰면 안 된다 — MapLibre 가 컨테이너에 붙이는
   // `.maplibregl-map { position: relative }` 이 Tailwind 의 `.absolute` 를 덮어써서
   // (특이도 동일, 스타일시트 순서상 뒤) inset 이 무효가 되고 높이가 0 이 된다.
   // 높이를 명시적으로 잡아 위치잡기에 의존하지 않는다.
   // z-10 으로 별필드 위에 올린다. MapLibre 가 position:relative 를 강제하므로
   // z-index 는 그대로 먹는다.
-  return <div ref={containerRef} className="relative z-10 h-full w-full" />;
+  return (
+    <div
+      ref={containerRef}
+      className="relative z-10 h-full w-full transition-transform duration-700 ease-out will-change-transform"
+    />
+  );
 }
