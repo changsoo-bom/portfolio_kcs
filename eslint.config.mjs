@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 정적 자산 디렉터리. maplibre-gl-worker.mjs 는 node_modules 에서 복사한 벤더 번들이다.
+    "public/**",
   ]),
 ]);
 

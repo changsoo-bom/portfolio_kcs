@@ -45,3 +45,7 @@ next-env.d.ts
 
 # bkit (machine-local runtime state)
 /.bkit
+
+# postinstall 이 node_modules 에서 복사한다 (MapLibre 버전과 항상 일치시키기 위해)
+public/maplibre-gl-worker.mjs
+public/maplibre-gl-shared.mjs
