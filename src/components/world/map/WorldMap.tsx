@@ -3,6 +3,8 @@
 import { GeoJSONSource, MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 
+import { ZoomControl } from "@/components/world/map/ZoomControl";
+
 import "maplibre-gl/dist/maplibre-gl.css";
 
 /**
@@ -98,8 +100,19 @@ const REGION_MAX_ZOOM = 9;
 const NO_REGIONS = { type: "FeatureCollection", features: [] } as const;
 
 const INITIAL_CENTER: [number, number] = [0, 20];
-/** 시작 배율. 올릴수록 지구가 크게 잡힌다. */
-const INITIAL_ZOOM = 2;
+
+/**
+ * 배율 한계. 슬라이더의 0% 와 100% 가 그대로 이 두 값이다.
+ *
+ * 아래는 지구 전체가 화면에 들어오는 지점이라 더 나갈 이유가 없고,
+ * 위는 위성 실해상도(10m/px)가 끝나는 지점이다 — 그 위로는 사진을 늘리기만 한다.
+ *
+ * 지도에도 minZoom/maxZoom 으로 걸어서 휠·핀치도 같은 한계를 따르게 한다.
+ */
+const MIN_ZOOM = 2;
+const MAX_ZOOM = SATELLITE_MAX_ZOOM;
+/** +/- 버튼 한 번에 움직이는 폭. 1 이면 배율이 두 배가 된다. */
+const ZOOM_STEP = 1;
 
 /** MapLibre 의 월드 크기(px). 지구본 반지름 계산에 쓴다. */
 const TILE_SIZE = 512;
@@ -155,6 +168,13 @@ export function WorldMap() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<HTMLInputElement>(null);
+  const percentRef = useRef<HTMLSpanElement>(null);
+  /**
+   * 줌 컨트롤이 지도를 조작하려면 인스턴스가 필요한데, 지도는 effect 안에서
+   * 만들어진다. state 로 올리면 `set-state-in-effect` 에 걸리므로 ref 로 넘긴다.
+   */
+  const mapRef = useRef<MapLibreMap | null>(null);
   const [hoveredName, setHoveredName] = useState<string | null>(null);
 
   // 지도 인스턴스는 리렌더를 넘어 살아남아야 하므로 마운트 시 한 번만 만든다
@@ -167,7 +187,9 @@ export function WorldMap() {
     const map = new MapLibreMap({
       container,
       center: INITIAL_CENTER,
-      zoom: INITIAL_ZOOM,
+      zoom: MIN_ZOOM,
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
       // OSM 데이터(ODbL)는 저작자 표시가 의무다. 끄면 안 된다 — compact 로 접어만 둔다.
       attributionControl: { compact: true },
       /**
@@ -734,12 +756,34 @@ export function WorldMap() {
 
     map.on("idle", syncRegions);
 
+    // ── 줌 컨트롤
+    mapRef.current = map;
+
+    /**
+     * 배율이 바뀔 때마다 슬라이더와 퍼센트를 맞춘다.
+     *
+     * 휠·핀치·나라 클릭 어느 쪽으로 바뀌든 여기를 지나므로 표시가 어긋나지 않는다.
+     * state 를 쓰지 않는 건 줌 애니메이션 한 번에 이벤트가 수십 번 오기 때문이다.
+     */
+    const syncZoom = () => {
+      const zoom = map.getZoom();
+      if (sliderRef.current) sliderRef.current.value = String(zoom);
+      if (percentRef.current) {
+        const percent = ((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)) * 100;
+        percentRef.current.textContent = `${Math.round(percent)}%`;
+      }
+    };
+
+    map.on("zoom", syncZoom);
+    syncZoom();
+
     map.on("error", (event) => {
       console.error("[MapLibre]", event.error);
     });
 
     return () => {
       cancelAnimationFrame(hoverFrame);
+      mapRef.current = null;
       map.remove();
     };
   }, []);
@@ -770,6 +814,24 @@ export function WorldMap() {
       >
         {hoveredName}
       </div>
+
+      <ZoomControl
+        min={MIN_ZOOM}
+        max={MAX_ZOOM}
+        sliderRef={sliderRef}
+        percentRef={percentRef}
+        // 드래그는 즉시 따라와야 하므로 애니메이션 없이 옮긴다
+        onSlide={(zoom) => mapRef.current?.setZoom(zoom)}
+        onStep={(direction) => {
+          const map = mapRef.current;
+          if (!map) return;
+          // easeTo 는 min/maxZoom 을 알아서 지킨다
+          map.easeTo({
+            zoom: map.getZoom() + direction * ZOOM_STEP,
+            duration: 260,
+          });
+        }}
+      />
     </div>
   );
 }
