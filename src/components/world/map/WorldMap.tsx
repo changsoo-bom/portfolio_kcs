@@ -1,6 +1,6 @@
 "use client";
 
-import { MapLibreMap, setWorkerUrl } from "maplibre-gl";
+import { GeoJSONSource, MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -54,6 +54,45 @@ const FONT = ["Noto Sans Regular"];
 const DETAIL_FROM = 4;
 const DETAIL_TO = 5.5;
 
+/**
+ * 위성 사진. Sentinel-2 cloudless (EOX).
+ *
+ * **비상업 한정이다** — CC BY-NC-SA 4.0. 이 프로젝트에는 맞지만 상업 전환 시
+ * 교체해야 한다. 대안은 MapTiler Satellite(키 필요, 무료 100k 타일/월).
+ * Esri World Imagery 는 키 없이 열리지만 직접 타일 호출이 약관 밖이라 쓰지 않는다.
+ *
+ * 격자는 GoogleMapsCompatible 이고 경로가 {z}/{행}/{열} 순이라 y 가 x 보다 앞에 온다.
+ * 실해상도가 10m/px 이라 14 위로는 확대해도 새 정보가 없다 — 거기서 끊고
+ * MapLibre 가 늘려 쓰게 둔다.
+ */
+const SATELLITE = "satellite";
+const SATELLITE_TILES =
+  "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg";
+const SATELLITE_MAX_ZOOM = 14;
+/** 벡터 지형이 다 올라온 뒤에 그 위를 덮기 시작한다. */
+const SATELLITE_FROM = DETAIL_TO;
+const SATELLITE_TO = 7;
+
+/**
+ * 행정구역(admin-1) 면. `scripts/build-admin1.mjs` 가 만든다.
+ *
+ * 위 상세 타일에는 **행정구역 면이 없다** — boundary 는 선이라 호버로 칠할
+ * 대상이 되지 못한다. 그래서 Natural Earth 폴리곤을 따로 얹는다.
+ *
+ * 전 세계가 한 파일이면 간소화 후에도 11MB 라 나라별로 쪼개 두고,
+ * 화면 가운데 나라가 바뀔 때 그 나라 것만 받는다.
+ */
+const REGION = "region";
+const REGION_FILL = "region-fill";
+const REGION_URL = (country: string) => `/admin1/${country}.geojson`;
+/**
+ * 지역 면은 1:10m 을 간소화한 데이터라 확대할수록 화면에 그려지는
+ * OpenStreetMap 경계선과 벌어진다. 그 전에 손을 뗀다.
+ */
+const REGION_MAX_ZOOM = 9;
+/** 아직 아무 나라도 안 골랐을 때의 초기값. */
+const NO_REGIONS = { type: "FeatureCollection", features: [] } as const;
+
 const INITIAL_CENTER: [number, number] = [0, 20];
 /** 시작 배율. 올릴수록 지구가 크게 잡힌다. */
 const INITIAL_ZOOM = 2;
@@ -95,7 +134,6 @@ const GLOBE = {
   sand: "#6f9a86",
   ice: "#cdeee8",
   road: "#a8ecc9",
-  building: "#2b6b6a",
   label: "#eafff2",
   labelHalo: "#08303a",
 } as const;
@@ -148,6 +186,22 @@ export function WorldMap() {
             promoteId: "fid",
           },
           [DETAIL]: { type: "vector", url: DETAIL_TILES },
+          [SATELLITE]: {
+            type: "raster",
+            tiles: [SATELLITE_TILES],
+            tileSize: 256,
+            maxzoom: SATELLITE_MAX_ZOOM,
+            // CC BY-NC-SA 4.0 의 표시 의무를 이걸로 채운다
+            attribution:
+              '<a href="https://s2maps.eu">Sentinel-2 cloudless</a> by ' +
+              '<a href="https://eox.at">EOX</a> (CC BY-NC-SA 4.0)',
+          },
+          [REGION]: {
+            type: "geojson",
+            data: NO_REGIONS,
+            // 파일에 id 가 없다. feature-state 로 호버를 칠하려면 필요하다.
+            generateId: true,
+          },
         },
         layers: [
           {
@@ -200,6 +254,8 @@ export function WorldMap() {
             source: DETAIL,
             "source-layer": "landcover",
             minzoom: DETAIL_FROM,
+            // 위성이 완전히 덮은 뒤에는 그려봐야 안 보인다
+            maxzoom: SATELLITE_TO,
             paint: {
               "fill-color": [
                 "match",
@@ -231,6 +287,7 @@ export function WorldMap() {
             source: DETAIL,
             "source-layer": "park",
             minzoom: 6,
+            maxzoom: SATELLITE_TO,
             paint: { "fill-color": GLOBE.grass, "fill-opacity": 0.3 },
           },
           {
@@ -239,6 +296,7 @@ export function WorldMap() {
             source: DETAIL,
             "source-layer": "water",
             minzoom: DETAIL_FROM,
+            maxzoom: SATELLITE_TO,
             paint: {
               "fill-color": GLOBE.ocean,
               "fill-opacity": [
@@ -257,17 +315,42 @@ export function WorldMap() {
             type: "line",
             source: DETAIL,
             "source-layer": "waterway",
-            minzoom: 7,
+            minzoom: 6,
+            maxzoom: SATELLITE_TO,
             paint: {
               "line-color": GLOBE.ocean,
               "line-width": [
                 "interpolate",
                 ["linear"],
                 ["zoom"],
-                7,
+                6,
                 0.5,
-                14,
-                2.5,
+                SATELLITE_TO,
+                2,
+              ],
+            },
+          },
+          /**
+           * 위성 사진. 여기부터 아래 벡터 면들을 덮는다.
+           *
+           * 도로·경계선·지명은 **이 위에** 그린다 — 사진만 있으면 어디가 어딘지
+           * 읽히지 않는다. 반대로 물·녹지 면은 사진이 같은 정보를 더 잘 보여주므로
+           * 위에서 maxzoom 으로 끊었다.
+           */
+          {
+            id: "satellite",
+            type: "raster",
+            source: SATELLITE,
+            minzoom: SATELLITE_FROM,
+            paint: {
+              "raster-opacity": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                SATELLITE_FROM,
+                0,
+                SATELLITE_TO,
+                1,
               ],
             },
           },
@@ -326,25 +409,39 @@ export function WorldMap() {
               ],
             },
           },
-          {
-            id: "building",
-            type: "fill",
-            source: DETAIL,
-            "source-layer": "building",
-            minzoom: 13,
-            paint: { "fill-color": GLOBE.building, "fill-opacity": 0.7 },
-          },
           /**
            * 행정 경계. demotiles 의 나라 윤곽은 저배율용이라 확대하면 실제 해안선과
            * 어긋나므로 아래에서 지워지고, 정확한 이쪽 선이 그 자리를 넘겨받는다.
            * admin_level 4 는 주·성·도 경계다 — 다음 단계 드릴다운의 기준선이 된다.
            */
+          /**
+           * 호버 대상. 평소에는 완전히 투명하고 커서가 올라간 것만 칠해진다.
+           * 투명해도 조회는 된다 — queryRenderedFeatures 는 배율 범위와
+           * visibility 만 보고 불투명도는 따지지 않는다.
+           */
+          {
+            id: REGION_FILL,
+            type: "fill",
+            source: REGION,
+            minzoom: DETAIL_FROM,
+            maxzoom: REGION_MAX_ZOOM,
+            paint: {
+              "fill-color": GLOBE.hover,
+              "fill-opacity": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                0.4,
+                0,
+              ],
+              "fill-opacity-transition": { duration: 160, delay: 0 },
+            },
+          },
           {
             id: "boundary-region",
             type: "line",
             source: DETAIL,
             "source-layer": "boundary",
-            minzoom: 5,
+            minzoom: DETAIL_FROM,
             filter: [
               "all",
               ["==", ["get", "admin_level"], 4],
@@ -352,9 +449,10 @@ export function WorldMap() {
             ],
             paint: {
               "line-color": GLOBE.outline,
-              "line-width": 0.8,
-              "line-opacity": 0.3,
-              "line-dasharray": [2, 2],
+              "line-width": 1.1,
+              "line-opacity": 0.7,
+              // 나라 경계(실선)와 구분되게 점선을 유지하되 간격을 좁힌다
+              "line-dasharray": [3, 1.5],
             },
           },
           {
@@ -482,7 +580,14 @@ export function WorldMap() {
     });
 
     // ── 호버
-    let hoveredId: number | null = null;
+    /**
+     * 지금 칠해 둔 대상. 나라와 지역이 서로 다른 소스라 id 만으로는 구분이 안 된다
+     * — 둘 다 작은 정수라 값이 겹친다. 소스까지 들고 다녀야 한다.
+     *
+     * setFeatureState / removeFeatureState 가 받는 모양과 같아서 그대로 넘긴다.
+     */
+    let hovered: { source: string; sourceLayer?: string; id: number } | null =
+      null;
     // event.point 는 Point 클래스라 PointLike 튜플로 옮겨 담는다
     let pendingPoint: [number, number] | null = null;
     let hoverFrame = 0;
@@ -501,13 +606,9 @@ export function WorldMap() {
     };
 
     const clearHover = () => {
-      if (hoveredId === null) return;
-      map.removeFeatureState({
-        source: SOURCE,
-        sourceLayer: SOURCE_LAYER,
-        id: hoveredId,
-      });
-      hoveredId = null;
+      if (!hovered) return;
+      map.removeFeatureState(hovered);
+      hovered = null;
       setHoveredName(null);
       map.getCanvas().style.cursor = "";
     };
@@ -539,8 +640,13 @@ export function WorldMap() {
         return;
       }
 
+      /**
+       * 지역 면이 나라 면 위에 있어서 먼저 나온다 — 결과는 레이어 배열 순서가
+       * 아니라 **그리는 순서(위부터)** 로 돌아온다. 지역이 없거나 배율 밖이면
+       * 자동으로 빠지므로 나라로 떨어진다.
+       */
       const feature = map.queryRenderedFeatures(point, {
-        layers: [FILL_LAYER],
+        layers: [REGION_FILL, FILL_LAYER],
       })[0];
 
       if (!feature || typeof feature.id !== "number") {
@@ -549,22 +655,22 @@ export function WorldMap() {
       }
 
       moveTooltip(point[0], point[1]);
-      if (feature.id === hoveredId) return;
 
-      if (hoveredId !== null) {
-        map.removeFeatureState({
-          source: SOURCE,
-          sourceLayer: SOURCE_LAYER,
-          id: hoveredId,
-        });
-      }
-      hoveredId = feature.id;
-      map.setFeatureState(
-        { source: SOURCE, sourceLayer: SOURCE_LAYER, id: hoveredId },
-        { hover: true },
-      );
+      const isRegion = feature.layer.id === REGION_FILL;
+      const next = isRegion
+        ? { source: REGION, id: feature.id }
+        : { source: SOURCE, sourceLayer: SOURCE_LAYER, id: feature.id };
 
-      const name = feature.properties.NAME;
+      if (hovered?.source === next.source && hovered.id === next.id) return;
+
+      if (hovered) map.removeFeatureState(hovered);
+      hovered = next;
+      map.setFeatureState(hovered, { hover: true });
+
+      const { properties } = feature;
+      const name = isRegion
+        ? (properties.name_ko ?? properties.name)
+        : properties.NAME;
       setHoveredName(typeof name === "string" ? name : null);
       map.getCanvas().style.cursor = "pointer";
     };
@@ -660,9 +766,12 @@ export function WorldMap() {
       if (!isOnGlobe(x, y)) return;
 
       const feature = map.queryRenderedFeatures([x, y], {
-        layers: [FILL_LAYER],
+        layers: [REGION_FILL, FILL_LAYER],
       })[0];
       if (!feature || typeof feature.id !== "number") return;
+      // 지역 위에서 누른 거면 나라를 다시 맞추지 않는다 — 이미 들어와 있는데
+      // 나라 전체로 되돌리면 오히려 줌아웃된다
+      if (feature.layer.id === REGION_FILL) return;
 
       const box = screenBoxOf(feature.id, event.lngLat);
       // 조각을 못 찾으면(있을 리 없지만) 최소한 클릭한 지점은 가운데로 보낸다
@@ -699,6 +808,44 @@ export function WorldMap() {
         duration: FIT_DURATION,
       });
     });
+
+    // ── 화면 가운데 나라의 행정구역을 받아 둔다
+    let loadedCountry: string | null = null;
+
+    /**
+     * 클릭으로 날아왔든 직접 줌했든 같은 경로를 탄다 — **화면 한가운데에 있는
+     * 나라**를 기준으로 삼는다. idle 은 타일까지 다 앉은 뒤에 오므로 그 시점에는
+     * 가운데 조회가 빈손으로 돌아오지 않는다.
+     */
+    const syncRegions = async () => {
+      const source = map.getSource(REGION);
+      if (!(source instanceof GeoJSONSource)) return;
+      if (map.getZoom() < DETAIL_FROM) return;
+
+      const canvas = map.getCanvas();
+      const middle: [number, number] = [
+        canvas.clientWidth / 2,
+        canvas.clientHeight / 2,
+      ];
+      const country = map.queryRenderedFeatures(middle, {
+        layers: [FILL_LAYER],
+      })[0]?.properties.ADM0_A3;
+
+      if (typeof country !== "string" || country === loadedCountry) return;
+      loadedCountry = country;
+
+      // 행정구역 자료가 없는 나라도 있다 — 404 면 조용히 비운다
+      const response = await fetch(REGION_URL(country));
+      // 기다리는 사이 다른 나라로 넘어갔으면 늦게 온 응답이 덮어쓰지 않게 버린다
+      if (loadedCountry !== country) return;
+
+      // generateId 는 데이터를 갈아끼울 때 id 를 새로 매긴다 — 칠해 둔 채로 두면
+      // 없어진 id 를 가리켜서 하이라이트가 박힌다
+      clearHover();
+      source.setData(response.ok ? await response.json() : NO_REGIONS);
+    };
+
+    map.on("idle", syncRegions);
 
     map.on("error", (event) => {
       console.error("[MapLibre]", event.error);
