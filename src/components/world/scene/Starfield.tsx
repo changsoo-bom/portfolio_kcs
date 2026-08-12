@@ -240,7 +240,8 @@ export function Starfield() {
       uniforms: {
         iTime: { value: FROZEN_TIME },
         tDiffuse: { value: null },
-        bloomTexture: { value: bloomComposer.renderTarget1.texture },
+        // 여기서 렌더타깃 텍스처를 넣으면 안 된다 — 아래 주석 참고
+        bloomTexture: { value: null },
         uBg: { value: hexToVec3(CONFIG.bgColor) },
         uFlameA: { value: hexToVec3(CONFIG.flameColor) },
         uFlameB: { value: hexToVec3(CONFIG.flameColor2) },
@@ -249,6 +250,17 @@ export function Starfield() {
       vertexShader: FINAL_VERTEX_SHADER,
       fragmentShader: FINAL_FRAGMENT_SHADER,
     });
+
+    /**
+     * 블룸 결과는 **ShaderPass 를 만든 뒤에** 연결해야 한다.
+     *
+     * ShaderPass 생성자는 넘겨받은 uniforms 를 UniformsUtils.clone() 하는데,
+     * r143 의 cloneUniforms 에는 렌더타깃 텍스처 예외가 없어서 `property.clone()` 으로
+     * 그냥 복제해버린다. 복제본은 isRenderTargetTexture 플래그를 잃어 일반 텍스처로
+     * 취급되고, 그 image 는 { width, height, depth } 라는 평범한 객체라
+     * texSubImage2D 에 넘어가는 순간 "Overload resolution failed" 로 터진다.
+     */
+    finalPass.uniforms.bloomTexture.value = bloomComposer.renderTarget1.texture;
 
     const finalComposer = new EffectComposer(renderer);
     finalComposer.addPass(renderScene);
