@@ -124,16 +124,15 @@ const BACKFACE_COS = 0.1;
  * 빼서 우주와 구분되게 하고, 윤곽만 별과 같은 제이드로 밝혀 빛나 보이게 한다.
  */
 /**
- * 역할마다 색을 갈라 셋으로 나눴다. 겹쳐 그려도 무엇이 무엇인지 구분된다.
- *   경계선 = 제이드 / 호버 = 같은 계열의 밝은 쪽 / 도로 = 유일하게 따뜻한 쪽
+ * 역할마다 색을 갈랐다. 겹쳐 그려도 무엇이 무엇인지 구분된다.
+ *   경계선 = 흰색 / 호버 = 제이드 / 도로 = 크림
  *
- * 한때 경계선을 시안(#5fe0ff)으로 옮겼었다. 고채도 시안은 자연에 거의 없어서
- * 사진 위에서 가장 확실히 읽히기 때문인데, **눈에 너무 세게 박혔다.**
- * 별하늘이 제이드 계열이라 시안은 화면 전체의 색 조합에서도 겉돌았다.
+ * **경계선만 무채색인 게 핵심이다.** 지구본에서 손을 떼면 화면에 색이 있는 건
+ * 사진과 호버뿐이라, 커서를 올린 곳이 유일하게 색을 띤 영역이 된다.
  *
- * 그래서 제이드로 돌아오되 세기는 낮춘 채로 뒀다. 대신 알아둘 것 —
- * **제이드는 식생 초록과 색상이 가까워 삼림 위에서 대비가 가장 약하다.**
- * 아마존이나 시베리아 타이가에서 경계선이 흐리면 그게 원인이다.
+ * 색 있는 경계선(제이드·시안)을 둘 다 거쳐 봤는데, 제이드는 식생 초록과
+ * 색상이 가까워 삼림 위에서 묻히고 시안은 눈에 너무 세게 박혔다.
+ * 흰색은 사진 어디에서도 중간은 가고, 무엇보다 호버와 경쟁하지 않는다.
  */
 const GLOBE = {
   /** 사진 타일이 도착하기 전 구를 채우는 색. 우주색에 붙여 둬야 덜 튄다. */
@@ -141,9 +140,8 @@ const GLOBE = {
   space: "#0a0a24",
   horizon: "#369fbc",
 
-  /** 별 팔레트의 제이드와 같은 색이다. */
-  line: "#5fe6a0",
-  /** 지형을 물들이는 게 아니라 밝기로 들어올린다. 갈색이든 초록이든 통한다. */
+  line: "#ffffff",
+  /** 별 팔레트의 제이드. 화면에서 유일하게 색을 띤 UI 요소다. */
   hover: "#b6f5d5",
   /** 경계선과 싸우지 않게 반대편으로 뺐다. */
   road: "#ffe3b0",
@@ -365,7 +363,16 @@ export function WorldMap() {
             paint: {
               "line-color": GLOBE.line,
               "line-width": 1.1,
-              "line-opacity": 0.5,
+              // 나라 경계와 같은 구간에서 같이 떠오른다
+              "line-opacity": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                DETAIL_FROM,
+                0,
+                DETAIL_TO,
+                0.55,
+              ],
               // 나라 경계(실선)와 구분되게 점선을 유지하되 간격을 좁힌다
               "line-dasharray": [3, 1.5],
             },
@@ -391,54 +398,11 @@ export function WorldMap() {
                 DETAIL_FROM,
                 0,
                 DETAIL_TO,
-                0.75,
+                0.85,
               ],
             },
           },
 
-          // ── 저배율 전용 윤곽. 같은 도형을 굵고 흐리게 → 얇고 밝게 두 번 그려
-          //    빛나 보이게 만든다. 확대하면 위 boundary 로 교대한다.
-          {
-            id: "country-glow",
-            type: "line",
-            source: SOURCE,
-            "source-layer": SOURCE_LAYER,
-            maxzoom: DETAIL_TO,
-            paint: {
-              "line-color": GLOBE.line,
-              "line-width": 3,
-              "line-opacity": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                DETAIL_FROM,
-                0.2,
-                DETAIL_TO,
-                0,
-              ],
-              "line-blur": 2,
-            },
-          },
-          {
-            id: "country-outline",
-            type: "line",
-            source: SOURCE,
-            "source-layer": SOURCE_LAYER,
-            maxzoom: DETAIL_TO,
-            paint: {
-              "line-color": GLOBE.line,
-              "line-width": 0.9,
-              "line-opacity": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                DETAIL_FROM,
-                0.7,
-                DETAIL_TO,
-                0,
-              ],
-            },
-          },
           {
             id: "place-label",
             type: "symbol",
