@@ -1,7 +1,7 @@
 "use client";
 
 import { MapLibreMap, setWorkerUrl } from "maplibre-gl";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -61,8 +61,24 @@ const GLOBE = {
   horizon: "#369fbc",
 } as const;
 
+/** 호버한 나라를 덮는 레이어. 데모 스타일에 없는 우리 레이어다. */
+const HOVER_LAYER = "country-hover";
+/**
+ * 어떤 나라도 고르지 않는 필터.
+ *
+ * 타일의 `fid` 는 0 부터 시작하는 양수라 -1 은 절대 맞지 않는다.
+ * 레이어를 지웠다 다시 만드는 것보다 필터만 바꾸는 편이 훨씬 싸다.
+ */
+const NO_COUNTRY = -1;
+/** 툴팁이 화면 오른쪽 끝에서 이만큼 안으로 들어오면 커서 왼쪽에 붙인다(px). */
+const TOOLTIP_FLIP_EDGE = 200;
+
 export function WorldMap() {
+  /** 패럴랙스 변환이 걸리는 바깥 껍데기. 툴팁도 이 좌표계 안에 있다. */
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [hoveredName, setHoveredName] = useState<string | null>(null);
 
   // 지도 인스턴스는 리렌더를 넘어 살아남아야 하므로 마운트 시 한 번만 만든다
   useEffect(() => {
@@ -144,6 +160,70 @@ export function WorldMap() {
         "sky-horizon-blend": 0.8,
         "atmosphere-blend": 0.35,
       });
+
+      // ── 나라 호버
+      // 데모 타일의 countries 레이어는 fid(고유 번호) · NAME · ADM0_A3 을 들고 있다.
+      // feature-state 대신 필터를 쓴다 — 소스가 우리 것이 아니라 promoteId 를
+      // 붙일 수 없고, fid 로 거르는 게 이름 비교보다 정확하다.
+      if (!map.getLayer("countries-fill")) return;
+
+      map.addLayer(
+        {
+          id: HOVER_LAYER,
+          type: "fill",
+          source: "maplibre",
+          "source-layer": "countries",
+          paint: {
+            "fill-color": GLOBE.coast,
+            "fill-opacity": 0.3,
+            "fill-opacity-transition": { duration: 150, delay: 0 },
+          },
+          filter: ["==", ["get", "fid"], NO_COUNTRY],
+        },
+        // 해안선·국경선은 위에 남겨 윤곽이 덮이지 않게 한다
+        map.getLayer("countries-boundary") ? "countries-boundary" : undefined,
+      );
+
+      const highlight = (fid: number) => {
+        map.setFilter(HOVER_LAYER, ["==", ["get", "fid"], fid]);
+      };
+
+      /** 툴팁은 커서를 따라 계속 움직인다 — state 로 두면 리렌더가 폭주한다. */
+      const moveTooltip = (point: { x: number; y: number }) => {
+        const tooltip = tooltipRef.current;
+        if (!tooltip) return;
+        const flip = point.x > map.getCanvas().clientWidth - TOOLTIP_FLIP_EDGE;
+        const offsetX = flip ? -16 : 16;
+        tooltip.style.transform =
+          `translate3d(${point.x + offsetX}px, ${point.y + 16}px, 0)` +
+          (flip ? " translateX(-100%)" : "");
+      };
+
+      let hoveredFid: number | null = null;
+
+      map.on("mousemove", "countries-fill", (event) => {
+        const properties = event.features?.[0]?.properties;
+        if (!properties) return;
+
+        moveTooltip(event.point);
+
+        const fid = typeof properties.fid === "number" ? properties.fid : null;
+        if (fid === null || fid === hoveredFid) return;
+
+        hoveredFid = fid;
+        highlight(fid);
+        setHoveredName(
+          typeof properties.NAME === "string" ? properties.NAME : null,
+        );
+        map.getCanvas().style.cursor = "pointer";
+      });
+
+      map.on("mouseleave", "countries-fill", () => {
+        hoveredFid = null;
+        highlight(NO_COUNTRY);
+        setHoveredName(null);
+        map.getCanvas().style.cursor = "";
+      });
     });
 
     map.on("error", (event) => {
@@ -164,33 +244,50 @@ export function WorldMap() {
    * 별이 반대로 밀리는 것과 방향을 맞췄다.
    */
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const onMouseMove = (event: MouseEvent) => {
       const x = (event.clientX / window.innerWidth) * 2 - 1;
       const y = (event.clientY / window.innerHeight) * 2 - 1;
-      container.style.transform = `translate3d(${-x * PARALLAX_X}px, ${-y * PARALLAX_Y}px, 0)`;
+      wrapper.style.transform = `translate3d(${-x * PARALLAX_X}px, ${-y * PARALLAX_Y}px, 0)`;
     };
 
     window.addEventListener("mousemove", onMouseMove);
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
-      container.style.transform = "";
+      wrapper.style.transform = "";
     };
   }, []);
 
-  // absolute + inset-0 을 쓰면 안 된다 — MapLibre 가 컨테이너에 붙이는
-  // `.maplibregl-map { position: relative }` 이 Tailwind 의 `.absolute` 를 덮어써서
-  // (특이도 동일, 스타일시트 순서상 뒤) inset 이 무효가 되고 높이가 0 이 된다.
-  // 높이를 명시적으로 잡아 위치잡기에 의존하지 않는다.
-  // z-10 으로 별필드 위에 올린다. MapLibre 가 position:relative 를 강제하므로
-  // z-index 는 그대로 먹는다.
   return (
+    // 껍데기가 패럴랙스와 좌표 기준을 맡는다. z-10 으로 별필드 위에 올린다.
     <div
-      ref={containerRef}
+      ref={wrapperRef}
       className="relative z-10 h-full w-full transition-transform duration-700 ease-out will-change-transform"
-    />
+    >
+      {/*
+        지도 컨테이너에 absolute + inset-0 을 쓰면 안 된다 — MapLibre 가 붙이는
+        `.maplibregl-map { position: relative }` 이 Tailwind 의 `.absolute` 를 덮어써서
+        (특이도 동일, 스타일시트 순서상 뒤) inset 이 무효가 되고 높이가 0 이 된다.
+        높이를 명시적으로 잡아 위치잡기에 의존하지 않는다.
+      */}
+      <div ref={containerRef} className="h-full w-full" />
+
+      {/*
+        조건부 렌더가 아니라 항상 두고 투명도만 바꾼다 — 조건부면 첫 호버 때
+        ref 가 아직 없어서 위치를 못 잡고 좌상단에 한 프레임 튄다.
+      */}
+      <div
+        ref={tooltipRef}
+        aria-hidden="true"
+        className={`pointer-events-none absolute top-0 left-0 rounded-full border border-white/15 bg-black/70 px-4 py-1.5 font-mono text-xs tracking-[0.2em] whitespace-nowrap text-white backdrop-blur transition-opacity duration-150 ${
+          hoveredName ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        {hoveredName}
+      </div>
+    </div>
   );
 }
