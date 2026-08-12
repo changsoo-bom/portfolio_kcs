@@ -23,10 +23,17 @@ const CONFIG = {
   repelRadius: 5,
   repelStrength: 0.35,
   /**
-   * 커서에 따른 카메라 오프셋. 원본 스펙은 0.6 인데 지도를 드래그할 때
-   * 배경까지 크게 흔들려 어지러워서 낮췄다.
+   * 커서에 따른 카메라 기울기(라디안). 0.045 ≒ 2.6°.
+   *
+   * 카메라를 **옮기지 않고 돌린다.** 옮기면 화면 이동량이 거리에 반비례해서
+   * 코앞의 별 몇 개만 화면을 가로질러 흐르고 나머지는 멈춰 있다 — 이게
+   * 어색함의 정체다. 돌리면 깊이와 무관하게 같은 각도로 움직여서 하늘 전체가
+   * 고르게 따라온다.
+   *
+   * 지구는 고정이다. 지도를 움직이면 커서가 멈춘 뒤에도 이징 동안 미끄러져서
+   * 나라 호버 판정이 낡은 위치를 가리킨다.
    */
-  parallax: 0.25,
+  tilt: 0.045,
 } as const;
 
 const COUNT = 4200;
@@ -126,7 +133,7 @@ const SETTLE_EPSILON = 1e-4;
  * 별하늘 배경.
  *
  * **별은 흐르지도 돌지도 반짝이지도 않는다** — 시간이 고정되어 있다.
- * 움직이는 것은 커서 반응뿐이다: 근처 별이 밀려나고 카메라가 살짝 따라간다.
+ * 움직이는 것은 커서 반응뿐이다: 근처 별이 밀려나고 카메라가 살짝 기운다.
  *
  * 모든 값이 수렴하면 렌더를 멈춘다. 마우스를 놓아두면 GPU 를 지도에 온전히 넘긴다.
  */
@@ -357,10 +364,15 @@ export function Starfield() {
       material.uniforms.uCursor.value.copy(pointer.world);
       material.uniforms.uActivity.value = pointer.activity;
 
-      const px = pointer.smooth.x * CONFIG.parallax;
-      const py = pointer.smooth.y * CONFIG.parallax;
-      camera.position.set(px, py, 5);
-      camera.lookAt(px, py, -10);
+      // 카메라 위치는 그대로 두고 각도만 준다.
+      // 오일러 순서 YXZ 라야 x=pitch, y=yaw 로 읽힌다 (기본 XYZ 는 롤이 섞인다).
+      // 부호는 하늘이 커서를 따라오는 방향 — 뒤집으면 반대로 밀린다.
+      camera.rotation.set(
+        -pointer.smooth.y * CONFIG.tilt,
+        pointer.smooth.x * CONFIG.tilt,
+        0,
+        "YXZ",
+      );
 
       return change;
     };
