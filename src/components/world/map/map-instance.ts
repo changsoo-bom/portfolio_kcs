@@ -22,6 +22,16 @@ export function setMapInstance(next: MapLibreMap | null) {
   waiting.clear();
 }
 
+/**
+ * 지금 있는 지도. 없으면 null 이다.
+ *
+ * **버튼이 쓸 것은 이쪽이다.** 아래 `onMapReady` 는 지도를 기다렸다가 하는
+ * 일이라, 아직 없을 때 누르면 대기 목록에 쌓였다가 지도가 뜨는 순간 눌렀던
+ * 만큼 한꺼번에 실행된다 — 서로 다른 곳으로 가는 이동이 겹쳐 튄다.
+ * 사람이 누른 것은 그 순간 지도가 없으면 아무 일도 안 하는 게 맞다.
+ */
+export const mapInstance = () => instance;
+
 /** 지도가 준비되면 부른다. 이미 준비됐으면 그 자리에서 부른다. */
 export function onMapReady(listener: (map: MapLibreMap) => void) {
   if (instance) {

@@ -1,12 +1,21 @@
+import "server-only";
+
 import countryNames from "@/data/country-names.json";
 import regionIndex from "@/data/region-index.json";
 import { FALLBACK_LANGUAGE } from "@/constants/languages";
+import { countryOf } from "@/lib/regions/code";
 import type { LanguageCode } from "@/constants/languages";
 import type { RegionBounds } from "@/types/attraction";
 
+export { countryOf };
+
 /**
  * 나라·구역 표 조회. **서버에서만 읽는다**(합쳐서 1.3MB).
- * 클라이언트 번들에 들어가지 않게 주의할 것 — 목록은 서버가 그려서 내려준다.
+ *
+ * 맨 위의 `server-only` 가 그걸 강제한다. 예전에는 이 주석이 유일한 방어라,
+ * 누가 클라이언트 컴포넌트에서 이름 조회 함수 하나를 값으로 가져다 쓰면
+ * 1.3MB 가 조용히 번들에 실렸다 — 빌드도 린트도 안 막고, 번들 크기를 재 볼
+ * 때에야 드러난다. 지금은 그 import 가 빌드를 깬다.
  */
 type RegionEntry = { bbox: number[]; names: Record<string, string> };
 
@@ -19,13 +28,6 @@ export type RegionOption = { value: string; label: string };
 
 const nameOf = (names: Record<string, string>, language: LanguageCode) =>
   names[language] ?? names[FALLBACK_LANGUAGE] ?? names.local;
-
-/**
- * 구역 id 앞 세 글자가 나라 코드다 — Natural Earth 의 `adm1_code` 가
- * `KOR-2496` 처럼 나라 코드로 시작한다. 이름 없는 구역이 `RUS+99?` 로
- * 오기도 하는데 앞 세 글자는 그대로다.
- */
-export const countryOf = (region: string) => region.slice(0, 3);
 
 /** 구역이 있는 나라만. 이름을 모르는 코드(군사기지·분쟁지 등)는 뺀다. */
 export function countryOptions(language: LanguageCode): RegionOption[] {

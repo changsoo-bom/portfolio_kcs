@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "build:admin1": "node scripts/build-admin1.mjs",
+    "build:country-names": "node scripts/build-country-names.mjs",
     "postinstall": "node -e \"const fs=require('fs');['maplibre-gl-worker.mjs','maplibre-gl-shared.mjs'].forEach(f=>fs.copyFileSync('node_modules/maplibre-gl/dist/'+f,'public/'+f))\""
   },
   "dependencies": {
@@ -16,6 +18,7 @@
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
     "three": "0.143.0",
     "zod": "^4.4.3"
   },
@@ -31,5 +34,8 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "packageManager": "pnpm@10.32.1"
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=22.18"
+  }
 }

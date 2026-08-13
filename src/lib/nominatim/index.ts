@@ -23,6 +23,9 @@ const USER_AGENT = "world-atlas (https://github.com/changsoo-bom/portfolio_kcs)"
  */
 const ZOOM = 18;
 
+/** 주소는 곁다리 정보다. 오래 붙들고 있느니 좌표만 보여주는 게 낫다. */
+const TIMEOUT = 8_000;
+
 /**
  * 큰 단위부터 이어 붙일 순서. 한 칸에 여러 후보를 둔 건 나라마다 쓰는 이름이
  * 다르기 때문이다.
@@ -87,6 +90,9 @@ export async function fetchAddress(
     const response = await fetch(url, {
       headers: { "User-Agent": USER_AGENT },
       next: { revalidate: REVALIDATE },
+      // Node 의 fetch 는 기본 타임아웃이 없다 — 상대가 커넥션만 잡고 있으면
+      // 주소 자리가 "찾는 중" 에서 영영 안 벗어난다
+      signal: AbortSignal.timeout(TIMEOUT),
     });
     if (!response.ok) {
       console.warn("[nominatim]", response.status, response.statusText);

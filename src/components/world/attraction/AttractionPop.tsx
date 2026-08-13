@@ -2,7 +2,10 @@ import Image from "next/image";
 import { Suspense } from "react";
 
 import { AttractionAddress } from "@/components/world/attraction/AttractionAddress";
-import { AttractionPopShell } from "@/components/world/attraction/AttractionPopShell";
+import {
+  AttractionPopShell,
+  POP_TITLE_ID,
+} from "@/components/world/attraction/AttractionPopShell";
 import { DetailRow } from "@/components/world/attraction/DetailRow";
 import { CATEGORY_LOOK } from "@/constants/attraction-look";
 import { messagesOf } from "@/constants/messages";
@@ -18,14 +21,6 @@ type AttractionPopProps = {
   region: string;
 };
 
-/** `ko:경복궁` → 위키백과 주소. 언어 접두사가 없으면 링크를 걸지 않는다. */
-function wikipediaUrl(value: string) {
-  const [language, ...rest] = value.split(":");
-  const title = rest.join(":");
-  if (!title) return undefined;
-  return `https://${language}.wikipedia.org/wiki/${encodeURIComponent(title)}`;
-}
-
 const LINK =
   "px-3 py-1.5 text-xs text-white/70 bg-white/5 rounded-full transition-colors " +
   "hover:bg-white/10 hover:text-white";
@@ -35,7 +30,10 @@ const LINK =
  *
  * **목록을 다시 불러서 그 안에서 찾는다.** 겹쳐 보이지만 그 조회는 이미
  * 캐시돼 있어서 실제 요청이 나가지 않고, 덕분에 장소 하나를 위한 별도
- * API 도 필요 없다. 주소만 공유해도 모달이 그대로 열린다.
+ * API 도 필요 없다.
+ *
+ * 주소에 남는 건 뒤로가기로 닫기 위해서지 공유를 위해서가 아니다 — 그 링크를
+ * 새로 열면 `app/page.tsx` 가 되돌려서 지구본부터 시작한다.
  */
 export async function AttractionPop({
   place,
@@ -49,9 +47,8 @@ export async function AttractionPop({
 
   const look = CATEGORY_LOOK[attraction.category];
   const messages = messagesOf(language);
-  const wikipedia = attraction.wikipedia
-    ? wikipediaUrl(attraction.wikipedia)
-    : undefined;
+  // 주소 조립과 검증은 lib 이 끝냈다 — 여기 오는 값은 이미 위키백과 주소다
+  const wikipedia = attraction.wikipedia;
 
   /**
    * 이름만으로는 "국립박물관" 같은 것이 세계 곳곳에 있다. 구역 이름을 붙여
@@ -87,7 +84,10 @@ export async function AttractionPop({
         <p className="font-mono text-[10px] tracking-[0.2em] text-[#b6f5d5]">
           {messages.categories[attraction.category].toUpperCase()}
         </p>
-        <h3 className="mt-1 text-xl text-white">{attraction.name}</h3>
+        {/* 모달의 이름이 된다 — 없으면 스크린리더가 "대화상자" 라고만 읽는다 */}
+        <h3 id={POP_TITLE_ID} className="mt-1 text-xl text-white">
+          {attraction.name}
+        </h3>
 
         {attraction.description && (
           <p className="mt-3 text-sm leading-relaxed text-white/60">

@@ -71,7 +71,19 @@ export const nominatimReverseSchema = z.object({
  * 고쳤다고 지구본까지 못 보게 만들 이유가 없다.
  */
 export const mapSearchParamsSchema = z.object({
-  region: z.string().min(1).max(32).optional().catch(undefined),
+  /**
+   * Natural Earth 의 `adm1_code`. `KOR-2496` 이 보통이고 이름 없는 구역은
+   * `PFA+00?` 처럼 온다. 4584개 전부가 이 모양이다.
+   *
+   * **모양을 안 보면 500 이 난다.** 구역 표는 번들러가 만든 일반 객체라
+   * `Object.prototype` 이 붙어 있어서, `region=constructor` 면 조회 결과가
+   * 함수(truthy)로 나와 없는 값 가드를 그냥 통과하고 그 다음 줄에서 터진다.
+   */
+  region: z
+    .string()
+    .regex(/^[A-Z]{3}[-+][A-Z0-9?]{1,12}$/)
+    .optional()
+    .catch(undefined),
   // ADM0_A3. 세 글자 코드만 받는다.
   country: z
     .string()

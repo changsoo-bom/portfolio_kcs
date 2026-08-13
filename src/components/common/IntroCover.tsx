@@ -72,7 +72,12 @@ export function IntroCover() {
         };
       }}
       aria-hidden="true"
-      className="fixed inset-0 z-50 overflow-hidden"
+      /*
+        pointer-events-none 이 있어야 한다. 커튼이 걷히는 3.6초 동안 지도는
+        이미 떠서 조작할 수 있는 상태인데, 없으면 그 시간의 클릭과 드래그를
+        이 덮개가 통째로 삼킨다 — 화면은 준비됐는데 아무 반응이 없다.
+      */
+      className="pointer-events-none fixed inset-0 z-50 overflow-hidden"
     >
       {PANELS.map((index) => (
         <div

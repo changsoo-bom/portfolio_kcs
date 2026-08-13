@@ -18,7 +18,10 @@
  * 이 데이터로 **선을 그리지 않기 때문에** 문제가 되지 않는다 — 화면에 보이는
  * 경계선은 OpenStreetMap 쪽이고, 이건 호버 판정과 채움에만 쓴다.
  *
- *   node scripts/build-admin1.mjs
+ *   pnpm build:admin1
+ *
+ * **Node 22.18 이상이 필요하다** — 이 파일이 `.ts` 를 그대로 import 해서
+ * 기본 타입 스트리핑에 기댄다. 그 아래 버전에서는 확장자를 모른다며 죽는다.
  */
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 
@@ -29,8 +32,24 @@ import {
 
 const CODES = LANGUAGES.map((language) => language.code);
 
+/**
+ * 아래 "영어와 같은 이름은 생략" 최적화가 여기에 매달려 있다.
+ *
+ * 폴백 언어가 목록에서 빠지면 `name_en` 을 한 번도 담지 않으면서 영어와 철자가
+ * 같은 이름은 전부 버려서, "Washington" 류 수천 개 구역의 라벨이 통째로
+ * 사라진다. 빌드도 린트도 통과하고 화면에서만 조용히 없어진다.
+ */
+if (!CODES.includes(FALLBACK_LANGUAGE)) {
+  throw new Error(`FALLBACK_LANGUAGE(${FALLBACK_LANGUAGE}) 가 LANGUAGES 에 없다`);
+}
+
+/**
+ * **판을 박아 둔다.** `master` 를 가리키면 같은 스크립트가 돌 때마다 다른
+ * 결과가 나올 수 있고, 그러면 어느 변경이 이쪽 알고리즘 때문이고 어느 게
+ * 상류 데이터 때문인지 diff 로 가를 수가 없다.
+ */
 const SOURCE =
-  "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson";
+  "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_1_states_provinces.geojson";
 
 /**
  * **나라별로 쪼개 쓴다.** 전 세계를 한 파일로 만들면 간소화 후에도 11MB 라,
@@ -200,11 +219,16 @@ function labelPointOf(properties, geometry) {
       y += (ring[j][1] + ring[i][1]) * cross;
     }
 
+    /**
+     * 간소화로 납작해진 링은 넓이가 0 에 아주 가까워져서 아래 나눗셈이
+     * 폭발한다. 결과가 NaN 도 Infinity 도 아닌 1e9 급 좌표라 어떤 검사에도
+     * 안 걸리고 지구 밖에 점이 찍힌다 — 그 전에 건너뛴다.
+     */
     const size = Math.abs(twice / 2);
-    if (size <= bestArea) continue;
+    if (size <= bestArea || size < 1e-9) continue;
+
     bestArea = size;
-    // 면적이 0 인 링(간소화로 납작해진 조각)은 나누기가 터진다 — 첫 점을 쓴다
-    best = twice === 0 ? ring[0] : [x / (3 * twice), y / (3 * twice)];
+    best = [x / (3 * twice), y / (3 * twice)];
   }
 
   return best && round(best);
@@ -218,8 +242,14 @@ console.log(`${source.features.length} features in`);
 
 /** ADM0_A3 → 그 나라의 피처들. */
 const byCountry = new Map();
-/** 이름 라벨 점. 나라를 가리지 않고 전부 한 파일에 들어간다. */
-const labels = [];
+/**
+ * 구역 id → 이름표를 찍을 점.
+ *
+ * 원본 properties 에만 있는 라벨 좌표라 여기서 뽑아 두고, 아래 두 번째 루프에서
+ * 상자와 함께 쓴다. **거기서 계산하는 상자가 날짜변경선을 이미 처리해 뒀다** —
+ * 라벨 쪽에서 상자를 새로 재면 그 처리를 놓친다.
+ */
+const labelPoints = new Map();
 
 for (const feature of source.features) {
   const { type, coordinates } = feature.geometry;
@@ -260,41 +290,10 @@ for (const feature of source.features) {
   bucket.push({ type: "Feature", properties, geometry });
   byCountry.set(country, bucket);
 
-  const point = labelPointOf(feature.properties, geometry);
   // 이름이 없는 구역은 라벨로 그릴 것도 없다
-  if (point && properties.name) {
-    const [west, south, east, north] = boxOf(
-      type === "Polygon" ? reduced : reduced.flat(),
-    );
-    /**
-     * 겹칠 때 남길 순서. 지도는 sort-key 가 **작은** 것을 먼저 놓으므로
-     * 넓은 구역일수록 음수로 크게 만든다 — 저배율에서 라벨이 서로 밀어낼 때
-     * 큰 주가 남고 작은 주가 접힌다.
-     */
-    const labelProperties = {
-      rank: -Math.round((east - west) * (north - south)),
-    };
-
-    /**
-     * **영어와 같은 이름은 안 담는다.** "Washington" 이 여섯 언어에 그대로
-     * 반복되는 식인데, 지도 쪽 coalesce 가 어차피 영어로 떨어지므로 결과가
-     * 같다. 이것만으로 파일이 4분의 1 줄었다.
-     */
-    const english = properties[`name_${FALLBACK_LANGUAGE}`];
-    for (const code of CODES) {
-      const value = properties[`name_${code}`];
-      if (!value) continue;
-      if (code !== FALLBACK_LANGUAGE && value === english) continue;
-      labelProperties[`name_${code}`] = value;
-    }
-    // 원어는 영어가 없을 때만 쓰인다
-    if (!english) labelProperties.name = properties.name;
-
-    labels.push({
-      type: "Feature",
-      properties: labelProperties,
-      geometry: { type: "Point", coordinates: point },
-    });
+  if (properties.name) {
+    const point = labelPointOf(feature.properties, geometry);
+    if (point) labelPoints.set(properties.id, point);
   }
 }
 
@@ -328,7 +327,26 @@ const merge = (a, b) => [
 const area = (box) => (box[2] - box[0]) * (box[3] - box[1]);
 
 const index = {};
+/** 이름표 점. 나라를 가리지 않고 전부 한 파일에 들어간다. */
+const labels = [];
 let split = 0;
+
+/**
+ * 이름표를 겹칠 때 남길 순서. 지도는 sort-key 가 **작은** 것을 먼저 놓으므로
+ * 넓은 구역일수록 음수로 크게 만든다 — 저배율에서 라벨이 서로 밀어낼 때
+ * 큰 주가 남고 작은 주가 접힌다.
+ *
+ * 경위도 상자를 그대로 쓰면 안 된다. 경도 1도의 실제 폭은 극으로 갈수록
+ * 줄어드는데 그걸 무시하면 고위도 구역이 부풀어서, 누나부트·크라스노야르스크가
+ * 온대의 더 큰 주를 밀어낸다. 위도 코사인을 곱해 되돌린다.
+ *
+ * 소수점을 세 자리 살린다. 정수로 반올림하면 0.5도² 미만이 전부 0 이 되는데,
+ * 그게 4578개 중 1995개(43.6%)라 세계의 절반에서 순서가 무작위가 됐다.
+ */
+const rankOf = ([west, south, east, north]) =>
+  -Math.round(
+    (east - west) * (north - south) * Math.cos((((north + south) / 2) * Math.PI) / 180) * 1000,
+  );
 
 let bytes = 0;
 for (const [country, features] of byCountry) {
@@ -362,6 +380,32 @@ for (const [country, features] of byCountry) {
       bbox: box.map((n) => Math.round(n * 1e4) / 1e4),
       names,
     };
+
+    const point = labelPoints.get(feature.properties.id);
+    if (!point) continue;
+
+    const labelProperties = { rank: rankOf(box) };
+
+    /**
+     * **영어와 같은 이름은 안 담는다.** "Washington" 이 여섯 언어에 그대로
+     * 반복되는 식인데, 지도 쪽 coalesce 가 어차피 영어로 떨어지므로 결과가
+     * 같다. 이것만으로 파일이 4분의 1 줄었다.
+     */
+    const english = feature.properties[`name_${FALLBACK_LANGUAGE}`];
+    for (const code of CODES) {
+      const value = feature.properties[`name_${code}`];
+      if (!value) continue;
+      if (code !== FALLBACK_LANGUAGE && value === english) continue;
+      labelProperties[`name_${code}`] = value;
+    }
+    // 원어는 영어가 없을 때만 쓰인다
+    if (!english) labelProperties.name = feature.properties.name;
+
+    labels.push({
+      type: "Feature",
+      properties: labelProperties,
+      geometry: { type: "Point", coordinates: point },
+    });
   }
 
   const json = JSON.stringify({ type: "FeatureCollection", features });

@@ -9,7 +9,7 @@ import {
   FIT_PADDING,
   PANEL_WIDTH,
   REGION_FIT_MAX_ZOOM,
-  onMapReady,
+  mapInstance,
 } from "@/components/world/map/map-instance";
 import { messagesOf } from "@/constants/messages";
 import { useMapParams } from "@/hooks/use-map-params";
@@ -40,30 +40,29 @@ export function FilterBar({ countries, regions, target }: FilterBarProps) {
   const messages = messagesOf(language);
 
   const goTo = () => {
-    if (!target) return;
+    const map = mapInstance();
+    if (!target || !map) return;
 
-    onMapReady((map) => {
-      const width = map.getCanvas().clientWidth;
-      // 패널이 열려 있으면 그만큼은 보이는 화면이 아니다
-      const covered = region && width > PANEL_WIDTH * 2 ? PANEL_WIDTH : 0;
+    const width = map.getCanvas().clientWidth;
+    // 패널이 열려 있으면 그만큼은 보이는 화면이 아니다
+    const covered = region && width > PANEL_WIDTH * 2 ? PANEL_WIDTH : 0;
 
-      map.fitBounds(
-        [
-          [target.west, target.south],
-          [target.east, target.north],
-        ],
-        {
-          padding: {
-            top: FIT_PADDING,
-            bottom: FIT_PADDING,
-            left: FIT_PADDING,
-            right: FIT_PADDING + covered,
-          },
-          maxZoom: region ? REGION_FIT_MAX_ZOOM : FIT_MAX_ZOOM,
-          duration: FIT_DURATION,
+    map.fitBounds(
+      [
+        [target.west, target.south],
+        [target.east, target.north],
+      ],
+      {
+        padding: {
+          top: FIT_PADDING,
+          bottom: FIT_PADDING,
+          left: FIT_PADDING,
+          right: FIT_PADDING + covered,
         },
-      );
-    });
+        maxZoom: region ? REGION_FIT_MAX_ZOOM : FIT_MAX_ZOOM,
+        duration: FIT_DURATION,
+      },
+    );
   };
 
   /**
@@ -74,9 +73,8 @@ export function FilterBar({ countries, regions, target }: FilterBarProps) {
    */
   const reset = () => {
     setCountry(null);
-    onMapReady((map) => {
-      map.easeTo({ zoom: map.getMinZoom(), duration: FIT_DURATION });
-    });
+    const map = mapInstance();
+    map?.easeTo({ zoom: map.getMinZoom(), duration: FIT_DURATION });
   };
 
   return (

@@ -94,6 +94,12 @@ export function ZoomControl({
         // 배율 자체를 값으로 쓴다 — 퍼센트로 변환하면 양쪽에서 두 번 왕복한다
         step={0.01}
         defaultValue={min}
+        /*
+          값 그대로 두면 스크린리더가 "6.37" 이라고 읽는다. 화면에는 아래에
+          퍼센트가 떠 있으니 낭독도 같은 말을 해야 한다 — 지도가 배율을
+          맞출 때 이 속성도 같이 갱신한다(WorldMap 의 syncZoom).
+        */
+        aria-valuetext="0%"
         onChange={(event) => onSlide(event.currentTarget.valueAsNumber)}
         className={SLIDER}
       />
@@ -107,8 +113,10 @@ export function ZoomControl({
         &minus;
       </button>
 
+      {/* 슬라이더가 aria-valuetext 로 같은 값을 읽어 준다 — 두 번 읽을 이유가 없다 */}
       <span
         ref={percentRef}
+        aria-hidden="true"
         className="w-full pb-[5px] text-center font-mono text-[10px] tabular-nums text-white/70"
       >
         0%

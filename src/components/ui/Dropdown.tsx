@@ -72,9 +72,23 @@ export function Dropdown({
      */
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
-      if (target instanceof Node && !rootRef.current?.contains(target)) {
-        dismiss();
-      }
+      if (!(target instanceof Node) || rootRef.current?.contains(target)) return;
+
+      /**
+       * 목록 안에 초점이 있었으면 트리거로 되돌린다. 그냥 닫으면 초점을 든
+       * 요소가 `visibility: hidden` 이 되면서 초점이 body 로 떨어져, 다음 탭이
+       * 문서 맨 앞부터 시작한다.
+       *
+       * `close()` 를 부르지 않고 여기서 푸는 건, 그 함수가 렌더마다 새로
+       * 만들어져서 이 리스너를 매번 다시 붙이게 만들기 때문이다.
+       */
+      const inside =
+        document.activeElement instanceof Node &&
+        rootRef.current?.contains(document.activeElement);
+
+      setOpen(false);
+      setQuery("");
+      if (inside) triggerRef.current?.focus();
     };
 
     document.addEventListener("pointerdown", onPointerDown);

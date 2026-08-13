@@ -319,9 +319,19 @@ export function Starfield() {
       pointer.ndc.y = -((event.clientY / window.innerHeight) * 2 - 1);
       pointer.active = true;
       pointer.lastMove = performance.now();
+      // 잦아들어 멈춰 있던 루프를 여기서 되살린다
+      if (!frame) frame = requestAnimationFrame(loop);
     };
-    const onMouseOut = () => {
+
+    const onMouseOut = (event: MouseEvent) => {
+      /**
+       * **mouseout 은 요소 경계를 넘을 때마다 window 까지 올라온다.**
+       * 그대로 받으면 커서가 지도에서 위쪽 필터바로 지나가기만 해도 별 반발이
+       * 한 번 꺼졌다 켜져 깜빡인다. 창 밖으로 나간 경우만 상대가 비어 있다.
+       */
+      if (event.relatedTarget) return;
       pointer.active = false;
+      if (!frame) frame = requestAnimationFrame(loop);
     };
 
     /** 이번 프레임에 실제로 움직인 양을 돌려준다. 0 에 가까우면 그리지 않는다. */
@@ -377,9 +387,22 @@ export function Starfield() {
       return change;
     };
 
+    /**
+     * **잦아들면 진짜로 멈춘다.** 예전에는 그리기만 건너뛰고 다음 프레임을
+     * 무조건 예약해서, 마우스를 놓아둬도 초당 60회 보간과 카메라 갱신이 계속
+     * 돌며 지도와 메인 스레드를 나눠 썼다.
+     *
+     * 활기(uActivity)가 남아 있으면 아직 할 일이 있는 것이다 — 커서를 멈춘
+     * 뒤 3초가 지나 그 값이 0 으로 꺼지는 것도 변화라서, 그때까지는 돈다.
+     */
     const loop = () => {
-      if (update() > SETTLE_EPSILON) draw();
-      frame = requestAnimationFrame(loop);
+      const change = update();
+      if (change > SETTLE_EPSILON) draw();
+
+      frame =
+        change > SETTLE_EPSILON || pointer.activity > SETTLE_EPSILON
+          ? requestAnimationFrame(loop)
+          : 0;
     };
 
     if (!reduceMotion) {

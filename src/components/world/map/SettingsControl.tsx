@@ -1,7 +1,7 @@
 "use client";
 
 import { Settings } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { LANGUAGES } from "@/constants/languages";
 import { messagesOf } from "@/constants/messages";
@@ -10,13 +10,47 @@ import { useMapParams } from "@/hooks/use-map-params";
 export function SettingsControl() {
   const { language, setLanguage } = useMapParams();
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  /**
+   * 바깥을 누르면 닫는다. click 이 아니라 pointerdown 인 건, 누른 채로 지도를
+   * 끌고 갔을 때도 닫혀야 하기 때문이다 — 필터 드롭다운과 같은 처리다.
+   */
+  useEffect(() => {
+    if (!open) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && !rootRef.current?.contains(target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
 
   return (
     // 팝오버가 이 상자를 기준으로 붙는다. 화면 고정은 부모가 한다.
-    <div className="relative">
+    <div
+      ref={rootRef}
+      /*
+        Esc 로 닫는다. 이게 없으면 키보드만 쓰는 사람은 언어를 고르지 않고
+        빠져나올 방법이 없다 — 초점을 옮겨도 팝오버는 열린 채 남는다.
+      */
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || !open) return;
+        setOpen(false);
+        triggerRef.current?.focus();
+      }}
+      className="relative"
+    >
       <button
+        ref={triggerRef}
         type="button"
         aria-label={messagesOf(language).settings}
+        aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((previous) => !previous)}
         className={`flex items-center justify-center h-10 w-10 rounded-full border border-white/15 bg-black/60 backdrop-blur transition-colors ${

@@ -10,20 +10,16 @@ import { AttractionPanelShell } from "@/components/world/attraction/AttractionPa
 import { AttractionPop } from "@/components/world/attraction/AttractionPop";
 import { FilterBar } from "@/components/world/map/FilterBar";
 import { WorldScene } from "@/components/world/scene/WorldScene";
-import { DEFAULT_LANGUAGE, LANGUAGES } from "@/constants/languages";
+import { languageOf } from "@/constants/languages";
 import { messagesOf } from "@/constants/messages";
-import type { LanguageCode } from "@/constants/languages";
 import {
   countryBoundsOf,
+  countryOf,
   countryOptions,
   regionEntryOf,
   regionOptions,
 } from "@/lib/regions";
 import { mapSearchParamsSchema } from "@/lib/schemas/attraction";
-
-const CODES: ReadonlySet<string> = new Set(
-  LANGUAGES.map((language) => language.code),
-);
 
 type HomeProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -62,10 +58,7 @@ export default async function Home({ searchParams }: HomeProps) {
     const query = keep.toString();
     redirect(query ? `/?${query}` : "/");
   }
-  const language: LanguageCode =
-    typeof raw === "string" && CODES.has(raw)
-      ? (raw as LanguageCode)
-      : DEFAULT_LANGUAGE;
+  const language = languageOf(raw);
 
   /**
    * 구역 이름은 여기서 바로 나온다 — 번들에 들어 있는 표를 조회할 뿐이다.
@@ -81,7 +74,7 @@ export default async function Home({ searchParams }: HomeProps) {
    * 구역을 골랐으면 나라는 그 앞 세 글자다 — 필터를 안 건드리고 지도만 눌러도
    * 목록이 따라오는 게 이 한 줄이다.
    */
-  const picked = country ?? region?.slice(0, 3) ?? null;
+  const picked = country ?? (region ? countryOf(region) : null);
   const target = entry
     ? entry.bounds
     : picked
@@ -125,9 +118,15 @@ export default async function Home({ searchParams }: HomeProps) {
 
         key 에 구역을 넣어야 구역을 바꿀 때마다 대기 상태로 되돌아간다 —
         없으면 이전 구역 목록이 그대로 남아 있다가 툭 바뀐다.
+
+        **껍데기에도 key 가 있어야 한다.** 껍데기는 닫는 중인지를 제 안에
+        들고 있는데, 닫히는 260ms 사이에 다른 구역을 고르면 제목만 갈리고
+        그 표시는 그대로 남는다 — 이어서 애니메이션 종료 신호가 도착해
+        방금 고른 구역이 열리지도 않고 닫힌다.
       */}
       {entry && (
         <AttractionPanelShell
+          key={region}
           title={entry.name}
           count={
             <Suspense key={region} fallback={messages.searching}>

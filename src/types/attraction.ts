@@ -30,11 +30,16 @@ export type Attraction = {
    * 하나도 없는 경우가 흔하다.
    */
   description?: string;
+  /**
+   * 링크가 되는 값들은 **`lib/overpass` 가 이미 걸렀다.** OSM 태그는 누구나
+   * 편집하는데 이게 그대로 `href` 가 되므로, 검증을 화면에 두면 신뢰 경계가
+   * 두 곳이 된다. 여기 있는 값은 스킴과 모양이 확인된 것이다.
+   */
   address?: string;
   website?: string;
   phone?: string;
   openingHours?: string;
-  /** `ko:경복궁` 형태. 언어 접두사를 떼어 주소를 만든다. */
+  /** 태그가 아니라 **완성된 위키백과 주소**다. */
   wikipedia?: string;
 };
 

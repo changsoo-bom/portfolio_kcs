@@ -3,32 +3,32 @@
 import { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { DEFAULT_LANGUAGE, LANGUAGES } from "@/constants/languages";
+import { DEFAULT_LANGUAGE, languageOf } from "@/constants/languages";
+import { countryOf } from "@/lib/regions/code";
 import type { LanguageCode } from "@/constants/languages";
-
-const CODES: ReadonlySet<string> = new Set(
-  LANGUAGES.map((language) => language.code),
-);
 
 /**
  * 지도 상태 중 **URL 로 표현되는 것들**을 읽고 쓴다.
  *
  * 언어와 선택한 구역을 state 가 아니라 주소에 두는 이유는 두 가지다.
- * 하나는 "일본어로 본 홋카이도" 같은 링크가 그대로 공유된다는 것이고,
- * 다른 하나는 **명소 목록을 서버에서 그리기 때문**이다 — 서버 컴포넌트는
- * 클라이언트 state 를 볼 수 없어서, 이 두 값이 주소에 있어야 목록을 만든다.
+ * 하나는 뒤로가기로 패널과 모달이 닫힌다는 것이고, 다른 하나는 **명소 목록을
+ * 서버에서 그리기 때문**이다 — 서버 컴포넌트는 클라이언트 state 를 볼 수 없어서,
+ * 이 두 값이 주소에 있어야 목록을 만든다.
+ *
+ * **공유되는 건 언어까지다.** 고른 구역과 장소는 `app/page.tsx` 가 문서 요청에서
+ * 되돌리므로, 링크를 새로 열면 지구본부터 시작한다.
  */
 export function useMapParams() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const raw = searchParams.get("lang");
-  const language: LanguageCode =
-    raw && CODES.has(raw) ? (raw as LanguageCode) : DEFAULT_LANGUAGE;
+  // 서버(page.tsx)와 같은 판정을 쓴다 — 목록에 언어를 더할 때 한 곳만 고친다
+  const language = languageOf(searchParams.get("lang"));
 
   const region = searchParams.get("region");
   /** 구역을 고르면 나라는 그 앞 세 글자로 정해진다 — 따로 안 적혀 있어도 안다. */
-  const country = searchParams.get("country") ?? region?.slice(0, 3) ?? null;
+  const country =
+    searchParams.get("country") ?? (region ? countryOf(region) : null);
 
   /**
    * **주소를 훅이 준 값이 아니라 window 에서 읽는다.**
@@ -78,7 +78,8 @@ export function useMapParams() {
         if (value) params.set("country", value);
         else params.delete("country");
         // 다른 나라로 옮기면 그 안에서 고른 구역은 뜻이 없다
-        if (params.get("region")?.slice(0, 3) !== value) {
+        const region = params.get("region");
+        if ((region ? countryOf(region) : null) !== value) {
           params.delete("region");
           params.delete("place");
         }
@@ -94,7 +95,7 @@ export function useMapParams() {
         if (value) {
           params.set("region", value);
           // 필터의 나라 칸도 같이 맞춘다
-          params.set("country", value.slice(0, 3));
+          params.set("country", countryOf(value));
         }
         // 구역을 닫으면 그 안에서 열어 둔 장소도 같이 닫힌다.
         // 나라는 남긴다 — 필터에서 옆 구역을 마저 고를 수 있어야 한다.

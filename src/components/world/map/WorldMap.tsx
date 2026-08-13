@@ -243,8 +243,6 @@ const GLOBE = {
 } as const;
 
 export function WorldMap() {
-  /** 좌표 기준이 되는 껍데기. 툴팁이 지도와 같은 좌표계 안에 있어야 한다. */
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLInputElement>(null);
@@ -332,8 +330,12 @@ export function WorldMap() {
             // 파일에 id 가 없다. feature-state 로 호버를 칠하려면 필요하다.
             generateId: true,
           },
-          // 주소만 주면 MapLibre 가 알아서 받아 온다 — fetch 를 따로 쓸 일이 없다
-          [REGION_LABEL_SOURCE]: { type: "geojson", data: REGION_LABEL_URL },
+          /**
+           * 비워 두고 시작한다. **소스에 주소를 박으면 스타일이 앉는 순간
+           * 무조건 받는다** — 레이어의 minzoom 은 그걸 막지 못해서, 지구본만
+           * 보고 나가는 사람도 1.3MB 를 다 받는다. 첫 확대 때 채운다.
+           */
+          [REGION_LABEL_SOURCE]: { type: "geojson", data: NO_REGIONS },
           /**
            * 명소. 빈 채로 선언해 두고, 구역을 고르면 서버가 받은 목록을
            * 여기에 갈아끼운다(AttractionMarkerLayer). 참조하는 레이어가
@@ -569,6 +571,14 @@ export function WorldMap() {
             type: "symbol",
             source: REGION_LABEL_SOURCE,
             minzoom: DETAIL_FROM,
+            /**
+             * **면·선과 같은 지점에서 손을 뗀다.** 위로 올라가면 경계선이
+             * OpenStreetMap 으로 교대하는데, 이름만 Natural Earth 로 남으면
+             * 선과 이름이 서로 다른 자료가 된다 — 케냐처럼 개편이 있었던
+             * 나라에서는 폐지된 주 이름 하나가 카운티 여럿을 가로질러 뜬다.
+             * 어차피 그 배율에서는 점이 화면 밖으로 밀려나 잘 보이지도 않는다.
+             */
+            maxzoom: REGION_MAX_ZOOM,
             layout: {
               "text-field": regionLabelTextField(DEFAULT_LANGUAGE),
               "text-font": FONT,
@@ -884,27 +894,49 @@ export function WorldMap() {
       if (country === loadedCountry) return;
       loadedCountry = country;
 
-      // 행정구역 자료가 없는 나라도 있다 — 404 면 조용히 비운다
-      const response = await fetch(REGION_URL(country));
-      // 기다리는 사이 다른 나라로 넘어갔으면 늦게 온 응답이 덮어쓰지 않게 버린다
-      if (loadedCountry !== country) return;
+      try {
+        // 행정구역 자료가 없는 나라도 있다 — 404 면 조용히 비운다
+        const response = await fetch(REGION_URL(country));
+        // 기다리는 사이 다른 나라로 넘어갔으면 늦게 온 응답이 덮어쓰지 않게 버린다
+        if (loadedCountry !== country) return;
 
-      const source = map.getSource(REGION);
-      if (!(source instanceof GeoJSONSource)) return;
+        const source = map.getSource(REGION);
+        if (!(source instanceof GeoJSONSource)) return;
 
-      // generateId 는 데이터를 갈아끼울 때 id 를 새로 매긴다 — 칠해 둔 채로 두면
-      // 없어진 id 를 가리켜서 하이라이트가 박힌다
-      clearHover();
-      source.setData(response.ok ? await response.json() : NO_REGIONS);
-      // 여기서 바로 다시 보면 안 된다 — setData 는 워커가 타일을 다시 만들 때까지
-      // 조회에 안 잡힌다. 아래 idle 이 그때를 잡는다.
+        // generateId 는 데이터를 갈아끼울 때 id 를 새로 매긴다 — 칠해 둔 채로 두면
+        // 없어진 id 를 가리켜서 하이라이트가 박힌다
+        clearHover();
+        source.setData(response.ok ? await response.json() : NO_REGIONS);
+        // 여기서 바로 다시 보면 안 된다 — setData 는 워커가 타일을 다시 만들 때까지
+        // 조회에 안 잡힌다. 아래 idle 이 그때를 잡는다.
+      } catch (error) {
+        /**
+         * **표시를 되돌려야 한다.** 안 그러면 위의 조기 반환에 계속 걸려서,
+         * 네트워크가 잠깐 끊긴 그 한 번 때문에 이 나라만 세션 내내 지방
+         * 호버가 안 된다 — 화면에는 아무 표시도 안 난다.
+         */
+        if (loadedCountry === country) loadedCountry = null;
+        console.warn("[admin1]", country, error);
+      }
     };
 
     map.on("mousemove", (event) => {
       pendingPoint = [event.point.x, event.point.y];
       if (!hoverFrame) hoverFrame = requestAnimationFrame(resolveHover);
     });
-    map.on("mouseout", clearHover);
+
+    /**
+     * 커서가 지도를 벗어나면 **마지막 자리도 지운다.**
+     *
+     * 칠만 지우면 아래 idle 이 그 자리를 다시 살려낸다. 커서를 줌 컨트롤로
+     * 옮긴 뒤 슬라이더를 끌면, 커서는 UI 위에 있는데 지도가 멎는 순간 예전
+     * 자리에 툴팁이 떠오른다.
+     */
+    map.on("mouseout", () => {
+      clearHover();
+      lastPoint = null;
+      pendingPoint = null;
+    });
 
     /**
      * 화면이 잦아들면 **커서 밑을 다시 본다.**
@@ -1100,12 +1132,6 @@ export function WorldMap() {
       });
     });
 
-    map.on("mousemove", (event) => {
-      pendingPoint = [event.point.x, event.point.y];
-      if (!hoverFrame) hoverFrame = requestAnimationFrame(resolveHover);
-    });
-    map.on("mouseout", clearHover);
-
     // ── 줌 컨트롤
     mapRef.current = map;
 
@@ -1115,13 +1141,39 @@ export function WorldMap() {
      * 휠·핀치·나라 클릭 어느 쪽으로 바뀌든 여기를 지나므로 표시가 어긋나지 않는다.
      * state 를 쓰지 않는 건 줌 애니메이션 한 번에 이벤트가 수십 번 오기 때문이다.
      */
+    /**
+     * 구역 이름표를 처음 필요해질 때 받는다.
+     *
+     * 소스에 주소를 박아 두면 스타일이 앉는 순간 무조건 받아서, 지구본만
+     * 보다 나가는 사람도 1.3MB 를 다 받는다. setData 는 주소도 받으므로
+     * 레이어를 나중에 붙일 필요 없이 데이터만 흘려 넣으면 된다 — 그래서
+     * 언어 교체 쪽은 레이어가 늘 있다고 봐도 된다.
+     */
+    let labelsRequested = false;
+    const loadRegionLabels = () => {
+      if (labelsRequested || map.getZoom() < DETAIL_FROM) return;
+
+      // 스타일이 아직 안 앉았으면 소스가 없다. 그때 세워 두면 영영 안 받는다.
+      const source = map.getSource(REGION_LABEL_SOURCE);
+      if (!(source instanceof GeoJSONSource)) return;
+
+      labelsRequested = true;
+      source.setData(REGION_LABEL_URL);
+    };
+
     const syncZoom = () => {
+      loadRegionLabels();
       const zoom = map.getZoom();
-      if (sliderRef.current) sliderRef.current.value = String(zoom);
-      if (percentRef.current) {
-        const percent = ((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)) * 100;
-        percentRef.current.textContent = `${Math.round(percent)}%`;
+      const percent = Math.round(
+        ((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)) * 100,
+      );
+
+      if (sliderRef.current) {
+        sliderRef.current.value = String(zoom);
+        // 값 그대로면 "6.37" 로 읽힌다 — 화면과 같은 말을 하게 맞춘다
+        sliderRef.current.setAttribute("aria-valuetext", `${percent}%`);
       }
+      if (percentRef.current) percentRef.current.textContent = `${percent}%`;
     };
 
     map.on("zoom", syncZoom);
@@ -1187,7 +1239,7 @@ export function WorldMap() {
     // 커서를 따라 지도를 CSS 로 밀던 패럴랙스는 뺐다 — 지도가 커서 밑에서
     // 미끄러지는 동안 호버 판정이 낡은 위치를 가리켜서, 지구 바깥인데도
     // 엉뚱한 나라가 잡혔다. 장식보다 호버 정확도가 우선이다.
-    <div ref={wrapperRef} className="relative z-10 h-full w-full">
+    <div className="relative z-10 h-full w-full">
       {/*
         지도 컨테이너에 absolute + inset-0 을 쓰면 안 된다 — MapLibre 가 붙이는
         `.maplibregl-map { position: relative }` 이 Tailwind 의 `.absolute` 를 덮어써서

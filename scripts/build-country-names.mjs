@@ -18,7 +18,8 @@ import { writeFileSync } from "node:fs";
 import { LANGUAGES } from "../src/constants/languages.ts";
 
 const SOURCE =
-  "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson";
+  // 판을 박아 둔다 — master 를 가리키면 돌릴 때마다 결과가 달라질 수 있다
+  "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_50m_admin_0_countries.geojson";
 /**
  * 같은 표를 두 군데에 쓴다.
  *
