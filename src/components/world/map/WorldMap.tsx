@@ -733,7 +733,21 @@ export function WorldMap() {
      * 마커는 서버가 그린 트리에서 온다 — 지도의 자식이 아니라 props 로 닿지
      * 않는다. 스타일이 앉은 뒤에 넘겨야 소스를 찾을 수 있다.
      */
-    map.on("load", () => setMapInstance(map));
+    map.on("load", () => {
+      setMapInstance(map);
+
+      /**
+       * 저작자 표시를 **접힌 채로 시작한다.**
+       *
+       * OSM(ODbL)과 위성 사진(CC BY-NC-SA)은 표시가 라이선스 조건이라 끌 수
+       * 없다. 다만 compact 를 켜도 MapLibre 는 첫 화면에서 한 번 펼쳐 보여주는데,
+       * 그러면 지구본 아래에 긴 한 줄이 계속 걸린다. 조건은 (i) 를 누르면
+       * 그대로 다 보이는 것으로 지킨다 — 지도 라이브러리들이 쓰는 방식이다.
+       */
+      container
+        .querySelector(".maplibregl-ctrl-attrib")
+        ?.classList.remove("maplibregl-compact-show");
+    });
 
     /**
      * 나라 이름 표. 타일에는 영어 이름 하나뿐이라 따로 받아 둔다.
