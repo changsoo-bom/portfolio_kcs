@@ -40,6 +40,18 @@ const SOURCE =
 const DEST_DIR = new URL("../public/admin1/", import.meta.url);
 
 /**
+ * 구역 id → 경계 상자 + 언어별 이름.
+ *
+ * 서버가 `?region=` 하나만 보고 Overpass 질의를 만들고 패널 제목까지 그릴 수
+ * 있어야 한다. 지오메트리는 클라이언트 전용이라 여기서는 뺀다.
+ *
+ * **키는 iso_3166_2 가 아니라 adm1_code 다.** ISO 코드는 유일하지 않다 —
+ * `BA-BIH` 하나에 보스니아 9개 주가 걸려 있고 `AU-NSW` 에는 뉴사우스웨일스와
+ * 로드하우섬이 같이 묶인다. adm1_code 는 Natural Earth 가 피처마다 매기는 값이다.
+ */
+const INDEX_DEST = new URL("../src/data/region-index.json", import.meta.url);
+
+/**
  * 간소화 허용 오차(도). 0.004° ≒ 450m.
  * 지역 레이어는 zoom 9 까지만 켜지는데, 그때 1px 이 약 0.0014° 라 3px 남짓이다.
  */
@@ -170,7 +182,9 @@ for (const feature of source.features) {
    * `name` 은 원어다 — 고른 언어와 영어가 둘 다 없을 때 마지막으로 떨어진다.
    */
   const properties = {
-    // "KR-11" 같은 ISO 3166-2 코드. 다음 단계에서 라우팅 키로 쓸 값이다.
+    // "KOR-1234". 구역을 가리키는 유일한 값이라 URL 키로 쓴다.
+    id: feature.properties.adm1_code,
+    // "KR-11" 같은 ISO 3166-2 코드. 표시·연동용이고 유일하지 않다.
     code: feature.properties.iso_3166_2,
     name: feature.properties.name,
   };
@@ -192,12 +206,77 @@ for (const feature of source.features) {
 rmSync(DEST_DIR, { recursive: true, force: true });
 mkdirSync(DEST_DIR, { recursive: true });
 
+/**
+ * 링 하나의 상자. MultiPolygon 이면 가장 넓은 조각만 쓸 수 있게 조각별로 낸다.
+ */
+function boxOf(rings) {
+  const box = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const ring of rings) {
+    for (const [x, y] of ring) {
+      if (x < box[0]) box[0] = x;
+      if (y < box[1]) box[1] = y;
+      if (x > box[2]) box[2] = x;
+      if (y > box[3]) box[3] = y;
+    }
+  }
+  return box;
+}
+
+const merge = (a, b) => [
+  Math.min(a[0], b[0]),
+  Math.min(a[1], b[1]),
+  Math.max(a[2], b[2]),
+  Math.max(a[3], b[3]),
+];
+
+const area = (box) => (box[2] - box[0]) * (box[3] - box[1]);
+
+const index = {};
+let split = 0;
+
 let bytes = 0;
 for (const [country, features] of byCountry) {
+  for (const feature of features) {
+    const parts =
+      feature.geometry.type === "Polygon"
+        ? [boxOf(feature.geometry.coordinates)]
+        : feature.geometry.coordinates.map(boxOf);
+
+    const whole = parts.reduce(merge);
+    /**
+     * 경도 폭이 180도를 넘으면 날짜변경선을 걸친 것이다 — 알래스카처럼 조각이
+     * 양 끝으로 갈라져서 상자가 지구를 한 바퀴 감싼다. 그대로 두면 Overpass 가
+     * 전 세계를 훑는다. 그럴 때는 **가장 넓은 조각 하나**로 대신한다.
+     */
+    const box =
+      whole[2] - whole[0] > 180
+        ? parts.reduce((a, b) => (area(a) >= area(b) ? a : b))
+        : whole;
+    if (box !== whole) split++;
+
+    // 이름이 통째로 없는 무명 구역이 있다. null 을 담으면 쓰는 쪽 타입이 깨진다.
+    const names = {};
+    if (feature.properties.name) names.local = feature.properties.name;
+    for (const code of CODES) {
+      const value = feature.properties[`name_${code}`];
+      if (value) names[code] = value;
+    }
+
+    index[feature.properties.id] = {
+      bbox: box.map((n) => Math.round(n * 1e4) / 1e4),
+      names,
+    };
+  }
+
   const json = JSON.stringify({ type: "FeatureCollection", features });
   writeFileSync(new URL(`${country}.geojson`, DEST_DIR), json);
   bytes += json.length;
 }
+
+writeFileSync(INDEX_DEST, JSON.stringify(index));
+console.log(
+  `region-index ${Object.keys(index).length}개 (날짜변경선 때문에 최대 조각만 쓴 것 ${split}개)`,
+);
 
 console.log(
   `${byCountry.size} countries, ` +
