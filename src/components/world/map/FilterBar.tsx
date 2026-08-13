@@ -21,8 +21,13 @@ type FilterBarProps = {
   target: RegionBounds | null;
 };
 
+/**
+ * 폭을 고정한다. select 는 내버려 두면 가장 긴 항목에 맞춰 늘어나서, 나라 칸과
+ * 지역 칸이 서로 다른 폭이 되고 나라를 바꿀 때마다 그 폭이 또 달라진다.
+ * 넘치는 이름은 잘라 낸다 — 어차피 펼치면 다 보인다.
+ */
 const FIELD =
-  "h-9 max-w-[12rem] cursor-pointer appearance-none rounded-full bg-white/5 " +
+  "h-9 w-44 cursor-pointer appearance-none truncate rounded-full bg-white/5 " +
   "pl-4 pr-8 text-sm text-white outline-none transition-colors " +
   "hover:bg-white/10 focus-visible:bg-white/10 disabled:cursor-default " +
   "disabled:text-white/25 disabled:hover:bg-white/5 " +
