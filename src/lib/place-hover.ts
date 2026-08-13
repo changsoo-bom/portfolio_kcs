@@ -18,11 +18,21 @@ export type HoverSource = "map" | "list";
 type Listener = (id: string | null, from: HoverSource) => void;
 
 let hovered: string | null = null;
+let hoveredFrom: HoverSource | null = null;
 const listeners = new Set<Listener>();
 
+/**
+ * 같은 것을 같은 쪽에서 다시 알리는 것만 접는다.
+ *
+ * **어디서 왔는지까지 봐야 한다.** id 만 비교하면, 목록에서 가리키던 카드를
+ * 지도에서 이어 가리킬 때 그 통지가 통째로 삼켜진다 — 두 리스너가 하는 일이
+ * 서로 달라서 한쪽은 아직 모르는 상태다.
+ */
 export function setHoveredPlace(id: string | null, from: HoverSource) {
-  if (hovered === id) return;
+  if (hovered === id && hoveredFrom === from) return;
+
   hovered = id;
+  hoveredFrom = from;
   for (const listener of listeners) listener(id, from);
 }
 

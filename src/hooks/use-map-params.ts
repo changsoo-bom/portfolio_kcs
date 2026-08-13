@@ -77,11 +77,12 @@ export function useMapParams() {
       update((params) => {
         if (value) params.set("country", value);
         else params.delete("country");
-        // 다른 나라로 옮기면 그 안에서 고른 구역은 뜻이 없다
+        // 다른 나라로 옮기면 그 안에서 고른 것들은 뜻이 없다
         const region = params.get("region");
         if ((region ? countryOf(region) : null) !== value) {
           params.delete("region");
           params.delete("place");
+          params.delete("category");
         }
       }, true);
     },
@@ -97,12 +98,18 @@ export function useMapParams() {
           // 필터의 나라 칸도 같이 맞춘다
           params.set("country", countryOf(value));
         }
-        // 구역을 닫으면 그 안에서 열어 둔 장소도 같이 닫힌다.
-        // 나라는 남긴다 — 필터에서 옆 구역을 마저 고를 수 있어야 한다.
-        else {
-          params.delete("region");
-          params.delete("place");
-        }
+        // 나라는 남긴다 — 필터에서 옆 구역을 마저 고를 수 있어야 한다
+        else params.delete("region");
+
+        /**
+         * 구역이 바뀌면 **그 안에서 고른 것들은 뜻이 없다.**
+         *
+         * 분류를 안 지우면 갇힌다. 칩은 그 구역에 실제로 있는 분류만 그리는데,
+         * "박물관" 을 걸어 둔 채 박물관이 없는 구역으로 옮기면 목록도 마커도
+         * 비고 되돌릴 칩조차 화면에 없다 — 명소가 40곳 있어도 없다고 읽힌다.
+         */
+        params.delete("category");
+        params.delete("place");
       }, false);
     },
     [update],

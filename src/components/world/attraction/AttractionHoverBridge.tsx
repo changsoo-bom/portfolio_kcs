@@ -57,9 +57,15 @@ export function AttractionHoverBridge({ children }: { children: ReactNode }) {
           event.target instanceof Element
             ? event.target.closest("[data-place]")
             : null;
-        if (card instanceof HTMLElement) {
-          setHoveredPlace(card.dataset.place ?? null, "list");
-        }
+
+        /**
+         * 카드가 아닌 데로 가면 **끈다.** 카드 사이 틈이나 목록 여백 위를
+         * 지날 때 아무 것도 안 알리면, 직전 카드의 점이 지도에서 커진 채 남는다.
+         */
+        setHoveredPlace(
+          card instanceof HTMLElement ? (card.dataset.place ?? null) : null,
+          "list",
+        );
       }}
       // 목록을 벗어나면 끈다. pointerout 은 카드 사이를 지날 때마다 와서 깜빡인다.
       onPointerLeave={() => setHoveredPlace(null, "list")}

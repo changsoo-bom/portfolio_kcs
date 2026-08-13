@@ -26,6 +26,9 @@ const COUNTRIES: Record<string, Record<string, string>> = countryNames;
 /** 드롭다운 한 줄. */
 export type RegionOption = { value: string; label: string };
 
+/** 주사위가 뽑아 준 구역. 서버가 골라 화면으로 넘긴다. */
+export type RegionPick = { id: string; bounds: RegionBounds; name: string };
+
 const nameOf = (names: Record<string, string>, language: LanguageCode) =>
   names[language] ?? names[FALLBACK_LANGUAGE] ?? names.local;
 
@@ -67,10 +70,10 @@ export function regionOptions(
  *
  * 이름이 없는 구역은 뺀다 — 도착해서 패널 제목이 비면 어디에 온 건지 모른다.
  */
-export function randomRegion(
-  language: LanguageCode,
-): { id: string; bounds: RegionBounds; name: string } | null {
-  const ids = Object.keys(REGIONS).filter((id) => nameOf(REGIONS[id].names, language));
+export function randomRegion(language: LanguageCode): RegionPick | null {
+  const ids = Object.keys(REGIONS).filter((id) =>
+    nameOf(REGIONS[id].names, language),
+  );
   if (ids.length === 0) return null;
 
   const id = ids[Math.floor(Math.random() * ids.length)];

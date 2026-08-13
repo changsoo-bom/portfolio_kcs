@@ -13,7 +13,7 @@ import {
 } from "@/components/world/map/map-instance";
 import { messagesOf } from "@/constants/messages";
 import { useMapParams } from "@/hooks/use-map-params";
-import type { RegionOption } from "@/lib/regions";
+import type { RegionOption, RegionPick } from "@/lib/regions";
 import type { RegionBounds } from "@/types/attraction";
 
 type FilterBarProps = {
@@ -27,7 +27,7 @@ type FilterBarProps = {
    * 목록을 여기까지 보낼 수 없고, 주소가 바뀔 때마다 페이지가 다시 렌더되니
    * 누를 때마다 다른 곳이 온다.
    */
-  random: { id: string; bounds: RegionBounds; name: string } | null;
+  random: RegionPick | null;
 };
 
 /**
@@ -77,13 +77,20 @@ export function FilterBar({
    * 어디로 갈지 모르는 채 누르는 버튼이라 확인할 것이 없다.
    */
   const surprise = () => {
-    if (!random) return;
+    const map = mapInstance();
+    // 지도가 없으면 아무 일도 안 한다 — 주소만 바꿔 놓으면 패널만 열리고
+    // 지구본은 그대로라, 눌렀는데 반쯤만 듣는 버튼이 된다
+    if (!random || !map) return;
+
     setRegion(random.id);
 
-    const map = mapInstance();
-    const width = map?.getCanvas().clientWidth ?? 0;
     // 도착하면 패널이 열린다 — 그 폭은 처음부터 빼고 맞춘다
-    fit(random.bounds, width > PANEL_WIDTH * 2 ? PANEL_WIDTH : 0, REGION_FIT_MAX_ZOOM);
+    const width = map.getCanvas().clientWidth;
+    fit(
+      random.bounds,
+      width > PANEL_WIDTH * 2 ? PANEL_WIDTH : 0,
+      REGION_FIT_MAX_ZOOM,
+    );
   };
 
   const goTo = () => {

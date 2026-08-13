@@ -7,6 +7,21 @@ const PANEL_COUNT = 12;
 const PANELS = Array.from({ length: PANEL_COUNT }, (_, index) => index);
 
 /**
+ * 지구본 팔레트를 그대로 쓴다(`WorldMap` 의 GLOBE).
+ *
+ * 예전에는 밝은 회색 커튼에 검은 글씨였다. 그러면 커튼이 걷히는 순간 밝은
+ * 화면에서 우주로 뚝 떨어져서, 로딩과 지도가 서로 다른 사이트처럼 보인다.
+ *
+ * 커튼은 **바다색**이다. 뒤에 드러날 우주색(#0a0a24)보다 청록 쪽이라 걷히는
+ * 움직임이 읽히면서도 같은 계열에 머문다 — 같은 색으로 두면 무엇이 걷혔는지
+ * 보이지 않는다.
+ */
+const CURTAIN = "#0d2233";
+const INK = "#eafff2";
+/** 화면에서 유일하게 색을 띠는 자리. 지도의 호버와 같은 제이드다. */
+const ACCENT = "#b6f5d5";
+
+/**
  * 첫 진입 시 한 번 재생되는 로딩 커버.
  * 화면 중앙 프로그레스가 끝나면 세로 패널이 가운데서 바깥으로 걷힌다.
  */
@@ -83,8 +98,9 @@ export function IntroCover() {
         <div
           key={index}
           data-panel
-          className="absolute inset-y-0 bg-[#ededed]"
+          className="absolute inset-y-0"
           style={{
+            background: CURTAIN,
             left: `${(index * 100) / PANEL_COUNT}%`,
             // 1px 여유로 패널 사이 서브픽셀 이음매를 덮는다
             width: `calc(${100 / PANEL_COUNT}% + 1px)`,
@@ -96,7 +112,7 @@ export function IntroCover() {
         data-status
         className="relative flex h-full flex-col items-center justify-center"
       >
-        <div className="w-[80vw] max-w-2xl text-[#0a0a0a]">
+        <div className="w-[80vw] max-w-2xl" style={{ color: INK }}>
           <div className="flex items-end justify-between pb-5 font-mono">
             <span className="text-sm tracking-[0.4em] sm:text-base">LOADING</span>
             <span className="flex items-center gap-1 leading-none font-medium tabular-nums">
@@ -106,12 +122,13 @@ export function IntroCover() {
               <span className="text-base sm:text-lg">%</span>
             </span>
           </div>
-          <div className="h-[3px] w-full bg-[#0a0a0a]/25">
+          {/* 홈이 너무 밝으면 막대가 어디까지 찼는지 안 읽힌다 */}
+          <div className="h-[3px] w-full" style={{ background: `${INK}33` }}>
             {/* Tailwind의 scale-* 는 CSS scale 속성이라 anime.js의 transform 과 겹친다 — 인라인 transform 으로 통일 */}
             <div
               data-fill
-              className="h-full w-full origin-left bg-[#0a0a0a]"
-              style={{ transform: "scaleX(0)" }}
+              className="h-full w-full origin-left"
+              style={{ background: ACCENT, transform: "scaleX(0)" }}
             />
           </div>
         </div>

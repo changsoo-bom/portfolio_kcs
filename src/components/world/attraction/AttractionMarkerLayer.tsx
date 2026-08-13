@@ -9,7 +9,7 @@ import {
   mapInstance,
   onMapReady,
 } from "@/components/world/map/map-instance";
-import { onHoveredPlace } from "@/lib/place-hover";
+import { onHoveredPlace, setHoveredPlace } from "@/lib/place-hover";
 import type { AttractionPoint } from "@/types/attraction";
 
 /**
@@ -82,6 +82,12 @@ export function AttractionMarkerLayer({
       off();
       offHover();
       paint(null);
+      /**
+       * 가리키던 것도 놓는다. 이 표를 안 지우면 다음 목록에서 **같은 명소**를
+       * 가리켜도 "이미 그것" 으로 보고 넘겨서 점이 영영 안 커진다 —
+       * 칠은 위에서 풀렸는데 알림만 남은 상태다.
+       */
+      setHoveredPlace(null, "list");
       attached?.setData(NO_PLACES);
     };
   }, [points]);
