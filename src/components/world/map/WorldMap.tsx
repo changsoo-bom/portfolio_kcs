@@ -11,6 +11,7 @@ import {
   LANGUAGES,
 } from "@/constants/languages";
 import type { LanguageCode } from "@/constants/languages";
+import { useMapParams } from "@/hooks/use-map-params";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -210,7 +211,9 @@ export function WorldMap() {
    * 만들어진다. state 로 올리면 `set-state-in-effect` 에 걸리므로 ref 로 넘긴다.
    */
   const mapRef = useRef<MapLibreMap | null>(null);
-  const [language, setLanguage] = useState<LanguageCode>(DEFAULT_LANGUAGE);
+  // setRegion 은 호출 시점의 주소를 직접 읽어서 렌더를 넘어 안정적이다 —
+  // 마운트 때 한 번 붙는 지도 핸들러가 그대로 붙들어도 낡지 않는다.
+  const { language, setRegion } = useMapParams();
   /**
    * 호버한 대상의 **언어별 이름 전부**를 들고 있는다. 화면에 쓸 하나를 골라
    * 담아두면 언어를 바꿨을 때 커서를 다시 움직여야 갱신된다.
@@ -759,7 +762,12 @@ export function WorldMap() {
        * 있어서 눌러도 아무 일이 안 일어난다.
        */
       const layer = feature.layer.id;
-      const limit = layer === REGION_FILL ? REGION_FIT_MAX_ZOOM : FIT_MAX_ZOOM;
+      const isRegion = layer === REGION_FILL;
+      const limit = isRegion ? REGION_FIT_MAX_ZOOM : FIT_MAX_ZOOM;
+
+      // 구역을 고르면 주소에 남는다 → 서버가 그 구역의 명소 목록을 그린다
+      const regionId = feature.properties.id;
+      if (isRegion && typeof regionId === "string") setRegion(regionId);
 
       const box = screenBoxOf(feature.id, event.lngLat, layer);
       // 조각을 못 찾으면(있을 리 없지만) 최소한 클릭한 지점은 가운데로 보낸다
@@ -862,7 +870,9 @@ export function WorldMap() {
       mapRef.current = null;
       map.remove();
     };
-  }, []);
+    // setRegion 은 router 하나에만 매여 있어 렌더를 넘어 그대로다 —
+    // 여기 넣어도 지도가 다시 만들어지지 않는다.
+  }, [setRegion]);
 
   /**
    * 라벨 언어 교체.
@@ -924,7 +934,7 @@ export function WorldMap() {
           }}
         />
 
-        <SettingsControl language={language} onLanguageChange={setLanguage} />
+        <SettingsControl />
       </div>
     </div>
   );

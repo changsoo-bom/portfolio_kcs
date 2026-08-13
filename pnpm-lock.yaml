@@ -26,6 +26,9 @@ importers:
       three:
         specifier: 0.143.0
         version: 0.143.0
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4

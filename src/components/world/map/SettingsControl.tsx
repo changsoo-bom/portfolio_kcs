@@ -3,17 +3,10 @@
 import { useState } from "react";
 
 import { LANGUAGES } from "@/constants/languages";
-import type { LanguageCode } from "@/constants/languages";
+import { useMapParams } from "@/hooks/use-map-params";
 
-type SettingsControlProps = {
-  language: LanguageCode;
-  onLanguageChange: (language: LanguageCode) => void;
-};
-
-export function SettingsControl({
-  language,
-  onLanguageChange,
-}: SettingsControlProps) {
+export function SettingsControl() {
+  const { language, setLanguage } = useMapParams();
   const [open, setOpen] = useState(false);
 
   return (
@@ -78,7 +71,7 @@ export function SettingsControl({
               <button
                 type="button"
                 onClick={() => {
-                  onLanguageChange(code);
+                  setLanguage(code);
                   // 고르면 같은 모션으로 접힌다
                   setOpen(false);
                 }}
