@@ -7,6 +7,9 @@ import { LANGUAGES } from "@/constants/languages";
 import { messagesOf } from "@/constants/messages";
 import { useMapParams } from "@/hooks/use-map-params";
 
+/** 톱니 버튼이 `aria-controls` 로 가리킬 대상. 화면에 하나뿐이라 고정 값이다. */
+const PANEL_ID = "settings-panel";
+
 export function SettingsControl() {
   const { language, setLanguage } = useMapParams();
   const [open, setOpen] = useState(false);
@@ -22,9 +25,16 @@ export function SettingsControl() {
 
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
-      if (target instanceof Node && !rootRef.current?.contains(target)) {
-        setOpen(false);
-      }
+      if (!(target instanceof Node) || rootRef.current?.contains(target)) return;
+
+      // 목록 안에 초점이 있었으면 톱니로 되돌린다 — 그냥 닫으면 초점을 든
+      // 버튼이 invisible 이 되면서 다음 탭이 문서 맨 앞부터 시작한다
+      const inside =
+        document.activeElement instanceof Node &&
+        rootRef.current?.contains(document.activeElement);
+
+      setOpen(false);
+      if (inside) triggerRef.current?.focus();
     };
 
     document.addEventListener("pointerdown", onPointerDown);
@@ -50,8 +60,10 @@ export function SettingsControl() {
         ref={triggerRef}
         type="button"
         aria-label={messagesOf(language).settings}
-        aria-haspopup="menu"
+        // haspopup="menu" 를 달았다가 뺐다 — 안쪽이 role="menu" 가 아니라
+        // 그냥 목록이라, 없는 메뉴를 안내하는 꼴이 된다. 연결만 밝힌다.
         aria-expanded={open}
+        aria-controls={PANEL_ID}
         onClick={() => setOpen((previous) => !previous)}
         className={`flex items-center justify-center h-10 w-10 rounded-full border border-white/15 bg-black/60 backdrop-blur transition-colors ${
           open ? "text-white" : "text-white/60 hover:text-white"
@@ -82,6 +94,7 @@ export function SettingsControl() {
         위치가 매 프레임 바뀌는 동안 그 결과를 다시 흐리게 만드느라 프레임이 샌다.
       */}
       <div
+        id={PANEL_ID}
         className={`absolute top-0 left-12 w-40 origin-top-left rounded-2xl border border-white/15 bg-black/85 p-1 transition-[opacity,scale,visibility] duration-200 ease-out ${
           open ? "visible scale-100 opacity-100" : "invisible scale-90 opacity-0"
         }`}

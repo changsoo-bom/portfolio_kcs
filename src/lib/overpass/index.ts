@@ -88,27 +88,56 @@ function wikipediaUrl(value: string | undefined) {
    * **접두사를 반드시 본다.** 예전에는 제목만 인코딩하고 접두사를 그대로
    * 주소에 박았는데, 그러면 태그가 `evil.example/#:경복궁` 일 때 최종 주소의
    * **호스트가 통째로 바뀐다**.
+   *
+   * 다만 두 글자 코드만 있는 게 아니다 — `simple`, `zh-min-nan`, `be-x-old`,
+   * `zh-classical` 처럼 길거나 하이픈이 둘인 판이 실제로 있다. 좁게 잡으면
+   * 그런 명소는 링크가 조용히 사라진다. 점도 슬래시도 대문자도 못 들어오니
+   * 넓혀도 호스트는 못 바꾼다.
    */
-  if (!title || !/^[a-z]{2,3}(-[a-z]{2,8})?$/.test(language)) return undefined;
+  if (!title || !/^[a-z]{2,10}(-[a-z]{1,10}){0,2}$/.test(language)) {
+    return undefined;
+  }
 
   return `https://${language}.wikipedia.org/wiki/${encodeURIComponent(title)}`;
 }
 
-/** http·https 만 통과시킨다. 파싱이 안 되는 값도 버린다. */
+/**
+ * http·https 만 통과시킨다. 파싱이 안 되는 값도 버린다.
+ *
+ * **스킴이 빠진 값은 버리지 않고 붙여 준다** — OSM 의 `website` 에는
+ * `www.example.com` 처럼 적힌 것이 흔한데, 그대로 두면 파싱이 실패해서
+ * 홈페이지 줄이 통째로 사라진다.
+ */
 function webUrl(value: string | undefined) {
   if (!value) return undefined;
 
-  try {
-    const { protocol } = new URL(value);
-    return protocol === "http:" || protocol === "https:" ? value : undefined;
-  } catch {
-    return undefined;
-  }
+  const parse = (candidate: string) => {
+    try {
+      const url = new URL(candidate);
+      return url.protocol === "http:" || url.protocol === "https:"
+        ? url.href
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  // 스킴이 있는데 http 계열이 아니면(`javascript:` 등) 거기서 끝이다.
+  // 그런 값에 다시 https 를 덧대면 없던 링크를 만들어 내는 셈이 된다.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return parse(value);
+  return parse(`https://${value}`);
 }
 
-/** 전화번호에 쓰이는 문자만. `tel:` 뒤에 무엇이든 들어가게 두지 않는다. */
-const phoneOf = (value: string | undefined) =>
-  value && /^[+0-9][0-9 ()./-]{2,31}$/.test(value) ? value : undefined;
+/**
+ * 전화번호에 쓰이는 문자만. `tel:` 뒤에 무엇이든 들어가게 두지 않는다.
+ *
+ * OSM 은 번호 여러 개를 `;` 로 잇는 관행이 있다 — 통째로 버리지 말고
+ * 첫 번호만 쓴다.
+ */
+const phoneOf = (value: string | undefined) => {
+  const first = value?.split(";")[0]?.trim();
+  return first && /^[+0-9][0-9 ()./-]{2,31}$/.test(first) ? first : undefined;
+};
 
 /** Overpass 의 상자 순서는 (남, 서, 북, 동) 이다 — 흔히 쓰는 순서와 다르다. */
 function buildQuery({ west, south, east, north }: RegionBounds) {

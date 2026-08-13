@@ -44,7 +44,12 @@ export function AttractionPopShell({ children }: { children: ReactNode }) {
     boxRef.current?.focus();
 
     return () => {
-      if (opener instanceof HTMLElement) opener.focus();
+      /**
+       * cleanup 은 노드가 **사라진 뒤에** 돈다. 뒤로가기를 두 번 눌러 모달과
+       * 목록이 같이 없어진 경우, 그 카드는 이미 문서 밖이라 초점을 못 받는다
+       * — 조용한 no-op 이 되어 결국 body 로 떨어진다. 살아 있을 때만 돌린다.
+       */
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
     };
   }, []);
 
@@ -77,7 +82,18 @@ export function AttractionPopShell({ children }: { children: ReactNode }) {
         const last = items[items.length - 1];
         const active = document.activeElement;
 
-        if (event.shiftKey && (active === first || active === box)) {
+        /**
+         * 초점이 상자 밖에 있으면 무조건 안으로 끌어온다. 배경 버튼은 탭
+         * 순서에서 뺐지만 **누르면 초점은 간다**(크롬 계열) — 그 상태로 탭을
+         * 치면 양 끝 비교에 아무것도 안 걸려서 모달 뒤로 빠져나간다.
+         */
+        if (!(active instanceof Node) || !box?.contains(active)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+          return;
+        }
+
+        if (event.shiftKey && active === first) {
           event.preventDefault();
           last.focus();
         } else if (!event.shiftKey && active === last) {

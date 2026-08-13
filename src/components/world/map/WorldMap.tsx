@@ -1158,7 +1158,22 @@ export function WorldMap() {
       if (!(source instanceof GeoJSONSource)) return;
 
       labelsRequested = true;
-      source.setData(REGION_LABEL_URL);
+
+      /**
+       * **직접 받아서 넣는다.** `setData(주소)` 로 맡기면 워커가 받는데,
+       * 실패해도 이쪽은 알 길이 없어서 표시만 세워진 채 이름표가 그 세션
+       * 내내 안 뜬다 — 위 `loadRegions` 에서 고친 것과 같은 함정이다.
+       */
+      fetch(REGION_LABEL_URL)
+        .then((response) => {
+          if (!response.ok) throw new Error(String(response.status));
+          return response.json();
+        })
+        .then((data) => source.setData(data))
+        .catch((error) => {
+          labelsRequested = false;
+          console.warn("[admin1-labels]", error);
+        });
     };
 
     const syncZoom = () => {
