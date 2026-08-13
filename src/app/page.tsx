@@ -35,14 +35,21 @@ export default async function Home({ searchParams }: HomeProps) {
    * 시작한다는 뜻이다. 그래서 문서를 통째로 요청한 경우 — 새로고침·주소창
    * 입력·링크 열기 — 에만 턴다. 화면 안에서의 이동은 `fetch` 라 걸리지 않는다.
    *
-   * **Next 의 `rsc` 헤더로는 못 가른다.** 캐시가 그 헤더에 따라 갈라지지 않도록
-   * `stripFlightHeaders` 가 앱에 넘기기 전에 지운다. 브라우저가 붙이는 표준
-   * 헤더를 쓴다 — 없는 브라우저(사파리 16.4 미만)에서는 그냥 안 턴다.
+   * **Next 가 주는 표시로는 못 가른다.** 캐시가 거기 따라 갈라지지 않도록
+   * `rsc` 헤더는 `stripFlightHeaders` 가, `_rsc` 파라미터는 `stripInternalQueries`
+   * 가 앱에 넘기기 전에 지운다.
+   *
+   * 그래서 `accept` 를 본다. 문서 요청만 `text/html` 을 달고 오고, 화면 안에서
+   * 부르는 쪽은 `fetch` 기본값이라 안 달고 온다. `sec-fetch-dest` 도 같은 일을
+   * 하지만 그건 iframe 안에서 `document` 가 아니고 오래된 브라우저는 안 붙인다.
+   *
+   * 카드의 `<Link>` 가 미리 당겨오는 요청도 `fetch` 라 여기 안 걸린다 —
+   * 걸리면 그 응답이 캐시에 얹혀서 카드를 누르는 순간 초기화된다.
    *
    * 언어는 남긴다. 그건 고른 것이 아니라 설정이라 새로고침으로 풀리면 곤란하다.
    */
-  const dest = (await headers()).get("sec-fetch-dest");
-  if ((region || place) && dest === "document") {
+  const accept = (await headers()).get("accept") ?? "";
+  if ((region || place) && accept.includes("text/html")) {
     const keep = new URLSearchParams();
     if (typeof raw === "string") keep.set("lang", raw);
     const query = keep.toString();
