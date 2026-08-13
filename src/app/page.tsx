@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { AttractionCount } from "@/components/world/attraction/AttractionCount";
 import { AttractionListSkeleton } from "@/components/world/attraction/AttractionListSkeleton";
+import { AttractionMarkers } from "@/components/world/attraction/AttractionMarkers";
 import { AttractionPanel } from "@/components/world/attraction/AttractionPanel";
 import { AttractionPanelShell } from "@/components/world/attraction/AttractionPanelShell";
 import { AttractionPop } from "@/components/world/attraction/AttractionPop";
@@ -46,6 +47,16 @@ export default async function Home({ searchParams }: HomeProps) {
     <main className="relative h-dvh w-full overflow-hidden bg-black">
       <h1 className="sr-only">세계 명소 탐색 지도</h1>
       <WorldScene />
+
+      {/*
+        지도 위의 점. 화면에는 아무것도 안 그리므로 fallback 이 필요 없고,
+        지도와 따로 흘러서 목록을 기다리는 동안에도 지구본은 돈다.
+      */}
+      {entry && (
+        <Suspense key={region} fallback={null}>
+          <AttractionMarkers bounds={entry.bounds} language={language} />
+        </Suspense>
+      )}
 
       {/*
         Suspense 로 감싸 **지도가 먼저 뜨게** 한다. Overpass 응답이 몇 초 걸릴 수

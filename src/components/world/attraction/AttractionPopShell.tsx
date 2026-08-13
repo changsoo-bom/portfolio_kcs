@@ -16,7 +16,7 @@ import { useMapParams } from "@/hooks/use-map-params";
  * 닫는 모양으로 바꾸고, 애니메이션이 끝났다는 신호를 받은 뒤에 주소를 바꾼다.
  */
 export function AttractionPopShell({ children }: { children: ReactNode }) {
-  const { closePlace } = useMapParams();
+  const { setPlace } = useMapParams();
   const [closing, setClosing] = useState(false);
 
   return (
@@ -50,7 +50,7 @@ export function AttractionPopShell({ children }: { children: ReactNode }) {
           걸 막는다.
         */
         onAnimationEnd={(event) => {
-          if (closing && event.target === event.currentTarget) closePlace();
+          if (closing && event.target === event.currentTarget) setPlace(null);
         }}
         // 열리자마자 Esc 가 먹으려면 이 상자가 초점을 받아야 한다
         tabIndex={-1}

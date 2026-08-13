@@ -3,6 +3,13 @@
 import { GeoJSONSource, MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 
+import {
+  NO_PLACES,
+  PLACE_MARKER,
+  PLACE_MARKER_LABEL,
+  PLACE_SOURCE,
+  setMapInstance,
+} from "@/components/world/map/map-instance";
 import { SettingsControl } from "@/components/world/map/SettingsControl";
 import { ZoomControl } from "@/components/world/map/ZoomControl";
 import {
@@ -119,6 +126,15 @@ const SATELLITE_MAX_ZOOM = 14;
  */
 const REGION = "region";
 const REGION_FILL = "region-fill";
+/**
+ * 칠하는 면의 윤곽선. **선과 면을 같은 데이터에서 뽑는 게 핵심이다.**
+ *
+ * 예전에는 선을 OpenStreetMap 에서, 칠을 여기서 가져왔다. 두 자료의 행정구역
+ * 구분이 다른 나라가 있어서 — 케냐는 2013년에 8개 주가 47개 카운티로 바뀌었는데
+ * Natural Earth 는 옛 주를 들고 있다 — 호버한 면이 화면의 선과 전혀 안 맞았다.
+ * 아프리카에 개편이 잦아 거기서 유독 티가 났다.
+ */
+const REGION_LINE = "region-line";
 const REGION_URL = (country: string) => `/admin1/${country}.geojson`;
 /**
  * 지역 면은 1:10m 을 간소화한 데이터라 확대할수록 화면에 그려지는
@@ -127,6 +143,16 @@ const REGION_URL = (country: string) => `/admin1/${country}.geojson`;
 const REGION_MAX_ZOOM = 9;
 /** 아직 아무 나라도 안 골랐을 때의 초기값. */
 const NO_REGIONS = { type: "FeatureCollection", features: [] } as const;
+
+/**
+ * 명소 마커가 뜨는 배율.
+ *
+ * 구역을 클릭하면 8.5 까지 들어오니 마커는 그때부터 이미 보인다. 아래를
+ * 열어 둔 건 그 상태로 줌아웃했을 때 점들이 한꺼번에 사라지지 않게 하려는 것이다.
+ * 이름은 더 위에서 붙는다 — 점만으로 충분한 구간이 있다.
+ */
+const MARKER_FROM = 5;
+const MARKER_LABEL_FROM = 8;
 
 const INITIAL_CENTER: [number, number] = [0, 20];
 
@@ -213,7 +239,7 @@ export function WorldMap() {
   const mapRef = useRef<MapLibreMap | null>(null);
   // setRegion 은 호출 시점의 주소를 직접 읽어서 렌더를 넘어 안정적이다 —
   // 마운트 때 한 번 붙는 지도 핸들러가 그대로 붙들어도 낡지 않는다.
-  const { language, setRegion } = useMapParams();
+  const { language, setRegion, setPlace } = useMapParams();
   /**
    * 호버한 대상의 **언어별 이름 전부**를 들고 있는다. 화면에 쓸 하나를 골라
    * 담아두면 언어를 바꿨을 때 커서를 다시 움직여야 갱신된다.
@@ -289,6 +315,13 @@ export function WorldMap() {
             // 파일에 id 가 없다. feature-state 로 호버를 칠하려면 필요하다.
             generateId: true,
           },
+          /**
+           * 명소. 빈 채로 선언해 두고, 구역을 고르면 서버가 받은 목록을
+           * 여기에 갈아끼운다(AttractionMarkerLayer). 참조하는 레이어가
+           * 화면에 안 나오면 MapLibre 는 소스를 아예 안 쓴다 — 비어 있는
+           * 동안 드는 비용이 없다.
+           */
+          [PLACE_SOURCE]: { type: "geojson", data: NO_PLACES },
         },
         layers: [
           {
@@ -424,17 +457,19 @@ export function WorldMap() {
               "fill-opacity-transition": { duration: 160, delay: 0 },
             },
           },
+          /**
+           * 상세 구역 윤곽. **호버로 칠하는 바로 그 면의 테두리다.**
+           * 같은 자료를 쓰니 칠과 선이 어긋날 수가 없다.
+           *
+           * 받아 둔 나라 것만 그려진다 — 커서가 가리키는 나라가 그 자리에서
+           * 쪼개져 보이고, 나머지는 나라 윤곽만 남는다.
+           */
           {
-            id: "boundary-region",
+            id: REGION_LINE,
             type: "line",
-            source: DETAIL,
-            "source-layer": "boundary",
+            source: REGION,
             minzoom: DETAIL_FROM,
-            filter: [
-              "all",
-              ["==", ["get", "admin_level"], 4],
-              ["!=", ["get", "maritime"], 1],
-            ],
+            maxzoom: REGION_MAX_ZOOM,
             paint: {
               "line-color": GLOBE.line,
               "line-width": 1.1,
@@ -449,6 +484,29 @@ export function WorldMap() {
                 0.55,
               ],
               // 나라 경계(실선)와 구분되게 점선을 유지하되 간격을 좁힌다
+              "line-dasharray": [3, 1.5],
+            },
+          },
+          /**
+           * 위쪽 배율은 OpenStreetMap 이 넘겨받는다. 여기서는 간소화한 구역 면이
+           * 실제 지형과 눈에 띄게 벌어지기도 하고, 그 배율에서는 호버할 면 자체가
+           * 꺼져 있어 맞춰볼 상대도 없다.
+           */
+          {
+            id: "boundary-region",
+            type: "line",
+            source: DETAIL,
+            "source-layer": "boundary",
+            minzoom: REGION_MAX_ZOOM,
+            filter: [
+              "all",
+              ["==", ["get", "admin_level"], 4],
+              ["!=", ["get", "maritime"], 1],
+            ],
+            paint: {
+              "line-color": GLOBE.line,
+              "line-width": 1.1,
+              "line-opacity": 0.55,
               "line-dasharray": [3, 1.5],
             },
           },
@@ -524,9 +582,77 @@ export function WorldMap() {
               ],
             },
           },
+
+          /**
+           * 명소. 지명 라벨보다 위다 — 목록에서 고르라고 띄운 것이라
+           * 다른 주기에 가리면 안 된다.
+           *
+           * 반지름에 zoom 을 쓰고 테두리에 hover 를 쓴다. 둘을 한 속성에
+           * 몰면 `["zoom"]` 이 case 안으로 들어가서 스타일이 통째로 엎어진다.
+           */
+          {
+            id: PLACE_MARKER,
+            type: "circle",
+            source: PLACE_SOURCE,
+            minzoom: MARKER_FROM,
+            paint: {
+              "circle-radius": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                MARKER_FROM,
+                3,
+                12,
+                7,
+              ],
+              "circle-color": GLOBE.hover,
+              "circle-stroke-color": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                GLOBE.line,
+                GLOBE.labelHalo,
+              ],
+              "circle-stroke-width": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                3,
+                1.5,
+              ],
+              "circle-stroke-opacity": 0.9,
+            },
+          },
+          {
+            id: PLACE_MARKER_LABEL,
+            type: "symbol",
+            source: PLACE_SOURCE,
+            // 점만으로 충분한 배율이 있다. 이름까지 깔면 서로 밀어내느라 다 사라진다.
+            minzoom: MARKER_LABEL_FROM,
+            layout: {
+              "text-field": ["get", "name"],
+              "text-font": FONT,
+              "text-size": 11,
+              // 점 아래에 붙인다 — 위에 두면 점이 글자 속에 파묻힌다
+              "text-offset": [0, 1],
+              "text-anchor": "top",
+              "text-max-width": 10,
+              // 자리가 없으면 이름만 접고 점은 남긴다
+              "text-optional": true,
+            },
+            paint: {
+              "text-color": GLOBE.label,
+              "text-halo-color": GLOBE.labelHalo,
+              "text-halo-width": 1.5,
+            },
+          },
         ],
       },
     });
+
+    /**
+     * 마커는 서버가 그린 트리에서 온다 — 지도의 자식이 아니라 props 로 닿지
+     * 않는다. 스타일이 앉은 뒤에 넘겨야 소스를 찾을 수 있다.
+     */
+    map.on("load", () => setMapInstance(map));
 
     /**
      * 나라 이름 표. 타일에는 영어 이름 하나뿐이라 따로 받아 둔다.
@@ -551,6 +677,8 @@ export function WorldMap() {
       null;
     // event.point 는 Point 클래스라 PointLike 튜플로 옮겨 담는다
     let pendingPoint: [number, number] | null = null;
+    /** 마지막으로 판정한 자리. 구역 자료가 늦게 도착하면 여기를 다시 본다. */
+    let lastPoint: [number, number] | null = null;
     let hoverFrame = 0;
 
     /**
@@ -572,7 +700,7 @@ export function WorldMap() {
      * region-fill 은 나라를 고르기 전이라도 존재하지만 순서상 먼저 걸린다.
      */
     const hoverLayers = () =>
-      [REGION_FILL, FILL_LAYER].filter((id) => map.getLayer(id));
+      [PLACE_MARKER, REGION_FILL, FILL_LAYER].filter((id) => map.getLayer(id));
 
     const clearHover = () => {
       if (!hovered) return;
@@ -603,6 +731,7 @@ export function WorldMap() {
       const point = pendingPoint;
       pendingPoint = null;
       if (!point) return;
+      lastPoint = point;
 
       if (!isOnGlobe(point[0], point[1])) {
         clearHover();
@@ -625,10 +754,14 @@ export function WorldMap() {
 
       moveTooltip(point[0], point[1]);
 
-      const isRegion = feature.layer.id === REGION_FILL;
-      const next = isRegion
-        ? { source: REGION, id: feature.id }
-        : { source: SOURCE, sourceLayer: SOURCE_LAYER, id: feature.id };
+      const layer = feature.layer.id;
+      const isMarker = layer === PLACE_MARKER;
+      const isRegion = layer === REGION_FILL;
+      const next = isMarker
+        ? { source: PLACE_SOURCE, id: feature.id }
+        : isRegion
+          ? { source: REGION, id: feature.id }
+          : { source: SOURCE, sourceLayer: SOURCE_LAYER, id: feature.id };
 
       if (hovered?.source === next.source && hovered.id === next.id) return;
 
@@ -639,7 +772,10 @@ export function WorldMap() {
       const { properties } = feature;
       const names: Record<string, string> = {};
 
-      if (isRegion) {
+      if (isMarker) {
+        // 명소 이름은 조회할 때 이미 고른 언어로 받아 뒀다 — 고를 게 하나뿐이다
+        if (typeof properties.name === "string") names.local = properties.name;
+      } else if (isRegion) {
         // admin1 파일은 `name_ko` 처럼 밑줄이다 (타일의 `name:ko` 와 다르다)
         for (const { code } of LANGUAGES) {
           const value = properties[`name_${code}`];
@@ -649,10 +785,49 @@ export function WorldMap() {
       } else {
         Object.assign(names, countryNames[String(properties.ADM0_A3)] ?? {});
         if (typeof properties.NAME === "string") names.local = properties.NAME;
+
+        /**
+         * **나라가 잡혔다는 건 그 나라 구역 자료가 아직 없다는 뜻이다.**
+         * 커서가 가리키는 나라를 바로 받는다 — 화면 가운데를 기준으로 받으면
+         * 이탈리아·한국처럼 바다가 가운데 오는 지형에서 영영 안 받아진다.
+         */
+        if (map.getZoom() >= DETAIL_FROM) {
+          void loadRegions(String(properties.ADM0_A3));
+        }
       }
 
       setHoveredNames(names);
       map.getCanvas().style.cursor = "pointer";
+    };
+
+    // ── 상세 구역 자료 받기
+    let loadedCountry: string | null = null;
+
+    /**
+     * 한 나라의 행정구역을 받아 소스에 얹는다.
+     *
+     * **기준은 커서다.** 예전에는 화면 한가운데 나라를 봤는데, 이탈리아·한국처럼
+     * 바다가 가운데 오는 지형에서는 가운데 조회가 빈손으로 돌아와 구역이 영영
+     * 안 받아졌다. 그러면 지방을 호버해도 나라 전체가 칠해진다.
+     */
+    const loadRegions = async (country: string) => {
+      if (country === loadedCountry) return;
+      loadedCountry = country;
+
+      // 행정구역 자료가 없는 나라도 있다 — 404 면 조용히 비운다
+      const response = await fetch(REGION_URL(country));
+      // 기다리는 사이 다른 나라로 넘어갔으면 늦게 온 응답이 덮어쓰지 않게 버린다
+      if (loadedCountry !== country) return;
+
+      const source = map.getSource(REGION);
+      if (!(source instanceof GeoJSONSource)) return;
+
+      // generateId 는 데이터를 갈아끼울 때 id 를 새로 매긴다 — 칠해 둔 채로 두면
+      // 없어진 id 를 가리켜서 하이라이트가 박힌다
+      clearHover();
+      source.setData(response.ok ? await response.json() : NO_REGIONS);
+      // 여기서 바로 다시 보면 안 된다 — setData 는 워커가 타일을 다시 만들 때까지
+      // 조회에 안 잡힌다. 아래 idle 이 그때를 잡는다.
     };
 
     map.on("mousemove", (event) => {
@@ -660,6 +835,31 @@ export function WorldMap() {
       if (!hoverFrame) hoverFrame = requestAnimationFrame(resolveHover);
     });
     map.on("mouseout", clearHover);
+
+    /**
+     * 화면이 잦아들면 **커서 밑을 다시 본다.**
+     *
+     * 지도가 움직이는 동안에는 mousemove 가 안 온다. 클릭으로 날아가거나 줌이
+     * 바뀌면 커서는 그대로인데 그 아래 있는 것이 바뀌어서, 다시 안 보면 방금
+     * 떠난 곳이 계속 칠해져 있다. 구역 자료가 늦게 도착한 경우도 여기서 잡힌다.
+     *
+     * **기준은 언제나 커서 자리다.** 화면 가운데를 쓰면 호버 쪽과 서로 다른
+     * 나라를 골라 번갈아 덮어쓰고, 받을 때마다 clearHover 가 돌아 칠이 지워진다.
+     * 이탈리아 앞바다가 가운데 오면 실루엣이 거칠어 크로아티아가 잡히는 식이다.
+     */
+    map.on("idle", () => {
+      if (!lastPoint) return;
+
+      if (map.getZoom() >= DETAIL_FROM) {
+        const country = map.queryRenderedFeatures(lastPoint, {
+          layers: [FILL_LAYER],
+        })[0]?.properties.ADM0_A3;
+        if (typeof country === "string") void loadRegions(country);
+      }
+
+      pendingPoint = lastPoint;
+      if (!hoverFrame) hoverFrame = requestAnimationFrame(resolveHover);
+    });
 
     // ── 클릭 → 그 나라로 이동
     /**
@@ -755,6 +955,16 @@ export function WorldMap() {
       if (!feature || typeof feature.id !== "number") return;
 
       /**
+       * 명소를 눌렀으면 **거기서 끝난다.** 상세를 열어야 하는데 같이 줌까지
+       * 하면 화면이 움직이는 사이에 모달이 올라와 어디가 눌린 건지 잃는다.
+       */
+      const place = feature.properties.id;
+      if (feature.layer.id === PLACE_MARKER) {
+        if (typeof place === "string") setPlace(place);
+        return;
+      }
+
+      /**
        * 커서 밑에 지역이 있으면 지역으로, 없으면 나라로 맞춘다.
        *
        * 나라를 한 번 채운 뒤 그 안의 지역을 누르면 한 단계 더 들어가는 흐름이다.
@@ -802,43 +1012,11 @@ export function WorldMap() {
       });
     });
 
-    // ── 화면 가운데 나라의 행정구역을 받아 둔다
-    let loadedCountry: string | null = null;
-
-    /**
-     * 클릭으로 날아왔든 직접 줌했든 같은 경로를 탄다 — **화면 한가운데에 있는
-     * 나라**를 기준으로 삼는다. idle 은 타일까지 다 앉은 뒤에 오므로 그 시점에는
-     * 가운데 조회가 빈손으로 돌아오지 않는다.
-     */
-    const syncRegions = async () => {
-      const source = map.getSource(REGION);
-      if (!(source instanceof GeoJSONSource)) return;
-      if (map.getZoom() < DETAIL_FROM) return;
-
-      const canvas = map.getCanvas();
-      const middle: [number, number] = [
-        canvas.clientWidth / 2,
-        canvas.clientHeight / 2,
-      ];
-      const country = map.queryRenderedFeatures(middle, {
-        layers: [FILL_LAYER],
-      })[0]?.properties.ADM0_A3;
-
-      if (typeof country !== "string" || country === loadedCountry) return;
-      loadedCountry = country;
-
-      // 행정구역 자료가 없는 나라도 있다 — 404 면 조용히 비운다
-      const response = await fetch(REGION_URL(country));
-      // 기다리는 사이 다른 나라로 넘어갔으면 늦게 온 응답이 덮어쓰지 않게 버린다
-      if (loadedCountry !== country) return;
-
-      // generateId 는 데이터를 갈아끼울 때 id 를 새로 매긴다 — 칠해 둔 채로 두면
-      // 없어진 id 를 가리켜서 하이라이트가 박힌다
-      clearHover();
-      source.setData(response.ok ? await response.json() : NO_REGIONS);
-    };
-
-    map.on("idle", syncRegions);
+    map.on("mousemove", (event) => {
+      pendingPoint = [event.point.x, event.point.y];
+      if (!hoverFrame) hoverFrame = requestAnimationFrame(resolveHover);
+    });
+    map.on("mouseout", clearHover);
 
     // ── 줌 컨트롤
     mapRef.current = map;
@@ -868,11 +1046,12 @@ export function WorldMap() {
     return () => {
       cancelAnimationFrame(hoverFrame);
       mapRef.current = null;
+      setMapInstance(null);
       map.remove();
     };
-    // setRegion 은 router 하나에만 매여 있어 렌더를 넘어 그대로다 —
+    // setRegion·setPlace 는 router 하나에만 매여 있어 렌더를 넘어 그대로다 —
     // 여기 넣어도 지도가 다시 만들어지지 않는다.
-  }, [setRegion]);
+  }, [setRegion, setPlace]);
 
   /**
    * 라벨 언어 교체.

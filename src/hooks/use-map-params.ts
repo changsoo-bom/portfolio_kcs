@@ -81,9 +81,15 @@ export function useMapParams() {
   );
 
   // 장소도 되돌리기 대상이다 — 뒤로가기로 모달만 닫히고 목록은 남는다.
-  const closePlace = useCallback(() => {
-    update((params) => params.delete("place"), false);
-  }, [update]);
+  const setPlace = useCallback(
+    (value: string | null) => {
+      update((params) => {
+        if (value) params.set("place", value);
+        else params.delete("place");
+      }, false);
+    },
+    [update],
+  );
 
-  return { language, region, setLanguage, setRegion, closePlace };
+  return { language, region, setLanguage, setRegion, setPlace };
 }

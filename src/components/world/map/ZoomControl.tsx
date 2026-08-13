@@ -102,7 +102,7 @@ export function ZoomControl({
 
       <span
         ref={percentRef}
-        className="w-full text-center font-mono text-[10px] tabular-nums text-white/70"
+        className="w-full pb-[5px] text-center font-mono text-[10px] tabular-nums text-white/70"
       >
         0%
       </span>
