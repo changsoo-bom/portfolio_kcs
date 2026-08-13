@@ -96,7 +96,7 @@ export function FilterBar({ countries, regions, target }: FilterBarProps) {
         title={messages.goTo}
         onClick={goTo}
         disabled={!target}
-        className="flex items-center justify-center h-9 w-9 text-black bg-[#b6f5d5] rounded-full transition-colors hover:bg-white disabled:bg-white/10 disabled:text-white/25"
+        className="flex items-center justify-center h-9 w-9 text-black bg-white rounded-full transition-colors hover:bg-white/75 disabled:bg-white/10 disabled:text-white/25"
       >
         <Send className="h-4 w-4" />
       </button>

@@ -228,10 +228,15 @@ export function Dropdown({
                     onChange(option.value);
                     close();
                   }}
+                  /*
+                    고른 항목은 **굵기와 밝기로만** 가른다. 제이드는 지도에서
+                    커서를 올린 곳에만 쓰는 색이라, UI 가 같은 색을 쓰면
+                    화면에서 색이 있는 자리가 둘이 되어 눈이 갈린다.
+                  */
                   className={`block w-full px-3 py-1.5 text-left text-sm truncate rounded-full transition-colors hover:bg-white/10 focus-visible:bg-white/10 outline-none ${
                     isSelected
-                      ? "text-[#b6f5d5]"
-                      : "text-white/70 hover:text-white"
+                      ? "font-semibold text-white"
+                      : "text-white/60 hover:text-white"
                   }`}
                 >
                   {option.label}
