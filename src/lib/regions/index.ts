@@ -33,10 +33,18 @@ const nameOf = (names: Record<string, string>, language: LanguageCode) =>
 export function countryOptions(language: LanguageCode): RegionOption[] {
   const codes = new Set(Object.keys(REGIONS).map(countryOf));
 
-  return [...codes]
-    .filter((code) => COUNTRIES[code])
-    .map((code) => ({ value: code, label: nameOf(COUNTRIES[code], language) }))
-    .sort((a, b) => a.label.localeCompare(b.label, language));
+  return (
+    [...codes]
+      .filter((code) => COUNTRIES[code])
+      .map((code) => ({ value: code, label: nameOf(COUNTRIES[code], language) }))
+      /**
+       * 이름이 빈 것은 여기서 뺀다. 아래 `localeCompare` 는 undefined 를 받는
+       * 순간 터지는데, 지금 데이터는 242개 전부 영어 이름이 있어서 안 터질
+       * 뿐이다 — 아래 `regionOptions` 는 이미 이 줄을 갖고 있다.
+       */
+      .filter((option) => option.label)
+      .sort((a, b) => a.label.localeCompare(b.label, language))
+  );
 }
 
 export function regionOptions(
