@@ -1,5 +1,6 @@
 "use client";
 
+import { Dropdown } from "@/components/ui/Dropdown";
 import {
   FIT_DURATION,
   FIT_MAX_ZOOM,
@@ -20,32 +21,6 @@ type FilterBarProps = {
   /** 바로가기가 데려갈 곳. 구역을 골랐으면 구역, 아니면 나라 전체. */
   target: RegionBounds | null;
 };
-
-/**
- * 폭을 고정한다. select 는 내버려 두면 가장 긴 항목에 맞춰 늘어나서, 나라 칸과
- * 지역 칸이 서로 다른 폭이 되고 나라를 바꿀 때마다 그 폭이 또 달라진다.
- * 넘치는 이름은 잘라 낸다 — 어차피 펼치면 다 보인다.
- */
-const FIELD =
-  "h-9 w-44 cursor-pointer appearance-none truncate rounded-full bg-white/5 " +
-  "pl-4 pr-8 text-sm text-white outline-none transition-colors " +
-  "hover:bg-white/10 focus-visible:bg-white/10 disabled:cursor-default " +
-  "disabled:text-white/25 disabled:hover:bg-white/5 " +
-  // 목록은 OS 가 그린다 — 어두운 배경을 알려줘야 흰 판이 튀어나오지 않는다
-  "[color-scheme:dark]";
-
-/** 화살표. select 의 기본 화살표는 appearance-none 으로 지웠다. */
-function Caret() {
-  return (
-    <svg
-      viewBox="0 0 10 6"
-      aria-hidden="true"
-      className="pointer-events-none absolute top-1/2 right-3 h-1.5 w-2.5 -translate-y-1/2 fill-white/40"
-    >
-      <path d="M0 0h10L5 6z" />
-    </svg>
-  );
-}
 
 /**
  * 화면 위쪽 가운데의 나라·구역 필터.
@@ -91,40 +66,20 @@ export function FilterBar({ countries, regions, target }: FilterBarProps) {
 
   return (
     <div className="fixed top-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 p-1.5 rounded-full border border-white/15 bg-black/60 backdrop-blur">
-      <div className="relative">
-        <select
-          aria-label={messages.country}
-          value={country ?? ""}
-          onChange={(event) => setCountry(event.target.value || null)}
-          className={FIELD}
-        >
-          <option value="">{messages.country}</option>
-          {countries.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <Caret />
-      </div>
+      <Dropdown
+        label={messages.country}
+        value={country}
+        options={countries}
+        onChange={setCountry}
+      />
 
-      <div className="relative">
-        <select
-          aria-label={messages.region}
-          value={region ?? ""}
-          disabled={regions.length === 0}
-          onChange={(event) => setRegion(event.target.value || null)}
-          className={FIELD}
-        >
-          <option value="">{messages.region}</option>
-          {regions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <Caret />
-      </div>
+      <Dropdown
+        label={messages.region}
+        value={region}
+        options={regions}
+        disabled={regions.length === 0}
+        onChange={setRegion}
+      />
 
       <button
         type="button"
