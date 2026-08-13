@@ -70,6 +70,7 @@ export function FilterBar({ countries, regions, target }: FilterBarProps) {
         label={messages.country}
         value={country}
         options={countries}
+        language={language}
         onChange={setCountry}
       />
 
@@ -78,6 +79,7 @@ export function FilterBar({ countries, regions, target }: FilterBarProps) {
         value={region}
         options={regions}
         disabled={regions.length === 0}
+        language={language}
         onChange={setRegion}
       />
 

@@ -23,6 +23,8 @@ type Messages = {
   country: string;
   region: string;
   goTo: string;
+  search: string;
+  noMatch: string;
 
   searching: string;
   /** 개수는 언어마다 붙는 자리가 달라서 문장째로 만든다. */
@@ -54,6 +56,8 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "나라",
     region: "지역",
     goTo: "바로가기",
+    search: "검색",
+    noMatch: "결과 없음",
 
     searching: "찾는 중…",
     places: (count) => `${count}곳`,
@@ -89,6 +93,8 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "Country",
     region: "Region",
     goTo: "Go",
+    search: "Search",
+    noMatch: "No matches",
 
     searching: "SEARCHING…",
     places: (count) => `${count} PLACES`,
@@ -124,6 +130,8 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "国",
     region: "地域",
     goTo: "移動",
+    search: "検索",
+    noMatch: "該当なし",
 
     searching: "検索中…",
     places: (count) => `${count}件`,
@@ -160,6 +168,8 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "国家",
     region: "地区",
     goTo: "前往",
+    search: "搜索",
+    noMatch: "无结果",
 
     searching: "搜索中…",
     places: (count) => `${count} 个地点`,
@@ -195,6 +205,8 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "País",
     region: "Región",
     goTo: "Ir",
+    search: "Buscar",
+    noMatch: "Sin resultados",
 
     searching: "BUSCANDO…",
     places: (count) => `${count} LUGARES`,
@@ -231,6 +243,8 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "Pays",
     region: "Région",
     goTo: "Aller",
+    search: "Rechercher",
+    noMatch: "Aucun résultat",
 
     searching: "RECHERCHE…",
     places: (count) => `${count} LIEUX`,
@@ -267,6 +281,8 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "Land",
     region: "Region",
     goTo: "Los",
+    search: "Suchen",
+    noMatch: "Keine Treffer",
 
     searching: "SUCHE…",
     places: (count) => `${count} ORTE`,
@@ -303,6 +319,8 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "Страна",
     region: "Регион",
     goTo: "Перейти",
+    search: "Поиск",
+    noMatch: "Ничего не найдено",
 
     searching: "ПОИСК…",
     places: (count) => `${count} МЕСТ`,
@@ -338,6 +356,8 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "País",
     region: "Região",
     goTo: "Ir",
+    search: "Buscar",
+    noMatch: "Sem resultados",
 
     searching: "BUSCANDO…",
     places: (count) => `${count} LUGARES`,
@@ -374,6 +394,8 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "Quốc gia",
     region: "Vùng",
     goTo: "Đi tới",
+    search: "Tìm kiếm",
+    noMatch: "Không có kết quả",
 
     searching: "ĐANG TÌM…",
     places: (count) => `${count} ĐỊA ĐIỂM`,

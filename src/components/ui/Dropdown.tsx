@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { messagesOf } from "@/constants/messages";
+import type { LanguageCode } from "@/constants/languages";
+
 export type DropdownOption = { value: string; label: string };
 
 type DropdownProps = {
@@ -10,6 +13,7 @@ type DropdownProps = {
   value: string | null;
   options: DropdownOption[];
   disabled?: boolean;
+  language: LanguageCode;
   onChange: (value: string | null) => void;
 };
 
@@ -20,24 +24,44 @@ type DropdownProps = {
  * 그리는 창이라 색도 모서리도 애니메이션도 줄 수 없다. 화면의 나머지가 어두운
  * 유리인데 거기만 흰 시스템 목록이 튀어나온다.
  *
- * 대신 잃는 것이 있다. 네이티브가 공짜로 주던 글자 입력 점프(ㄱ 을 누르면
- * ㄱ 으로 시작하는 항목으로)가 없어진다. 방향키·Enter·Esc 는 아래에서 되살렸고,
- * 열 때 고른 항목으로 초점을 옮겨 240개 목록에서도 지금 위치가 보인다.
+ * 직접 그리면 네이티브가 공짜로 주던 글자 입력 점프를 잃는데, 나라가 240개라
+ * 그게 아쉬운 자리다. 그래서 목록 맨 위에 **검색 칸**을 둔다 — 점프보다 낫다.
+ * 여러 글자로 걸러지고, 이름 중간에 있는 글자로도 찾힌다.
  */
 export function Dropdown({
   label,
   value,
   options,
   disabled,
+  language,
   onChange,
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
 
+  const messages = messagesOf(language);
   const selected = options.find((option) => option.value === value) ?? null;
+
+  const keyword = query.trim().toLowerCase();
+  const shown = keyword
+    ? options.filter((option) => option.label.toLowerCase().includes(keyword))
+    : options;
+
+  /** 닫으면 검색어도 지운다 — 다시 열었을 때 지난번 검색이 남아 있으면 안 된다. */
+  const dismiss = () => {
+    setOpen(false);
+    setQuery("");
+  };
+
+  const close = () => {
+    dismiss();
+    triggerRef.current?.focus();
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -49,7 +73,7 @@ export function Dropdown({
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (target instanceof Node && !rootRef.current?.contains(target)) {
-        setOpen(false);
+        dismiss();
       }
     };
 
@@ -57,11 +81,6 @@ export function Dropdown({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
-  /**
-   * 열리면 고른 항목으로 초점을 옮긴다 — 긴 목록이 그 자리로 스크롤된다.
-   * 아직 아무것도 안 골랐으면 첫 항목으로 간다. 안 그러면 초점이 트리거에
-   * 남아서 방향키가 목록으로 못 들어간다.
-   */
   useEffect(() => {
     if (!open) return;
 
@@ -73,8 +92,10 @@ export function Dropdown({
     let inner = 0;
     const outer = requestAnimationFrame(() => {
       inner = requestAnimationFrame(() => {
-        const first = listRef.current?.querySelector("button");
-        (selectedRef.current ?? first)?.focus();
+        // 열자마자 바로 칠 수 있게 검색 칸으로 간다
+        searchRef.current?.focus();
+        // 고른 항목은 초점 대신 스크롤로 보여준다
+        selectedRef.current?.scrollIntoView({ block: "center" });
       });
     });
 
@@ -84,26 +105,28 @@ export function Dropdown({
     };
   }, [open]);
 
-  const close = () => {
-    setOpen(false);
-    triggerRef.current?.focus();
-  };
-
   /** 방향키로 항목 사이를 옮긴다. 초점을 실제로 옮겨서 스크롤이 따라온다. */
   const step = (delta: number) => {
     const buttons = [...(listRef.current?.querySelectorAll("button") ?? [])];
     if (buttons.length === 0) return;
 
     const active = document.activeElement;
-    const index = active instanceof HTMLButtonElement ? buttons.indexOf(active) : -1;
-    const next = (index + delta + buttons.length) % buttons.length;
-    buttons[next]?.focus();
+    const index =
+      active instanceof HTMLButtonElement ? buttons.indexOf(active) : -1;
+
+    // 검색 칸에서 아래를 누르면 첫 항목, 위를 누르면 마지막 항목으로 간다
+    if (index < 0) {
+      buttons[delta > 0 ? 0 : buttons.length - 1]?.focus();
+      return;
+    }
+
+    buttons[(index + delta + buttons.length) % buttons.length]?.focus();
   };
 
   return (
     /**
-     * 키 처리를 여기 한 곳에 둔다. 트리거와 목록은 형제라, 트리거에서 누른
-     * Esc 는 목록까지 닿지 않는다 — 둘 다 이 상자 안이라 여기서는 다 잡힌다.
+     * 키 처리를 여기 한 곳에 둔다. 트리거·검색 칸·목록이 형제라, 트리거에서
+     * 누른 Esc 는 목록까지 닿지 않는다 — 둘 다 이 상자 안이라 여기서는 다 잡힌다.
      */
     <div
       ref={rootRef}
@@ -129,8 +152,8 @@ export function Dropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         disabled={disabled}
-        onClick={() => setOpen((previous) => !previous)}
-        className={`flex items-center justify-between gap-2 h-9 w-44 pl-4 pr-3 text-sm rounded-full transition-colors ${
+        onClick={() => (open ? close() : setOpen(true))}
+        className={`flex items-center justify-between gap-2 h-9 w-50 pl-4 pr-3 text-sm rounded-full transition-colors ${
           disabled
             ? "text-white/25 bg-white/5"
             : `text-white ${open ? "bg-white/10" : "bg-white/5 hover:bg-white/10"}`
@@ -161,42 +184,62 @@ export function Dropdown({
 
         전이 목록에 transform 이 아니라 scale 을 적는다. Tailwind v4 의 `scale-*`
         은 CSS `scale` 속성으로 컴파일돼서, transform 만 걸면 크기가 툭 튄다.
+
+        목록은 트리거보다 넓어져도 된다. 폭을 맞추면 "사우스조지아 사우스샌드위치
+        제도" 같은 이름이 목록에서도 잘려서, 펼쳐도 뭔지 모르게 된다.
       */}
       <div
-        ref={listRef}
-        role="listbox"
-        aria-label={label}
-        /*
-          목록은 트리거보다 넓어져도 된다. 폭을 맞추면 "사우스조지아 사우스샌드위치
-          제도" 같은 이름이 목록에서도 잘려서, 펼쳐도 뭔지 모르게 된다.
-          min-w-full 로 최소한 트리거만큼은 잡고 내용에 맞춰 늘린다.
-        */
-        className={`absolute top-full left-0 z-30 mt-2 max-h-64 w-max min-w-full max-w-[18rem] origin-top overflow-y-auto scrollbar-slim rounded-2xl border border-white/15 bg-black/85 p-1 transition-[opacity,scale,visibility] duration-200 ease-out ${
+        className={`absolute top-full left-0 z-30 mt-2 w-max min-w-full max-w-[18rem] origin-top rounded-2xl border border-white/15 bg-black/85 p-1 transition-[opacity,scale,visibility] duration-200 ease-out ${
           open ? "visible scale-100 opacity-100" : "invisible scale-95 opacity-0"
         }`}
       >
-        {options.map((option) => {
-          const isSelected = option.value === value;
+        <input
+          ref={searchRef}
+          type="text"
+          aria-label={messages.search}
+          placeholder={messages.search}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className="w-full px-3 py-1.5 text-sm text-white bg-transparent border-b border-white/10 outline-none placeholder:text-white/30"
+        />
 
-          return (
-            <button
-              key={option.value}
-              ref={isSelected ? selectedRef : undefined}
-              type="button"
-              role="option"
-              aria-selected={isSelected}
-              onClick={() => {
-                onChange(option.value);
-                close();
-              }}
-              className={`block w-full px-3 py-1.5 text-left text-sm truncate rounded-full transition-colors hover:bg-white/10 focus-visible:bg-white/10 outline-none ${
-                isSelected ? "text-[#b6f5d5]" : "text-white/70 hover:text-white"
-              }`}
-            >
-              {option.label}
-            </button>
-          );
-        })}
+        <div
+          ref={listRef}
+          role="listbox"
+          aria-label={label}
+          className="max-h-56 mt-1 overflow-y-auto scrollbar-slim"
+        >
+          {shown.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-white/30">
+              {messages.noMatch}
+            </p>
+          ) : (
+            shown.map((option) => {
+              const isSelected = option.value === value;
+
+              return (
+                <button
+                  key={option.value}
+                  ref={isSelected ? selectedRef : undefined}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    onChange(option.value);
+                    close();
+                  }}
+                  className={`block w-full px-3 py-1.5 text-left text-sm truncate rounded-full transition-colors hover:bg-white/10 focus-visible:bg-white/10 outline-none ${
+                    isSelected
+                      ? "text-[#b6f5d5]"
+                      : "text-white/70 hover:text-white"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );
