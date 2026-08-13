@@ -48,14 +48,14 @@ export function SettingsControl() {
         위치가 매 프레임 바뀌는 동안 그 결과를 다시 흐리게 만드느라 프레임이 샌다.
       */}
       <div
-        className={`absolute top-0 left-12 w-40 origin-top-left rounded-2xl border border-white/15 bg-black/85 p-2 transition-[opacity,scale,visibility] duration-200 ease-out ${
+        className={`absolute top-0 left-12 w-40 origin-top-left rounded-2xl border border-white/15 bg-black/85 p-1 transition-[opacity,scale,visibility] duration-200 ease-out ${
           open ? "visible scale-100 opacity-100" : "invisible scale-90 opacity-0"
         }`}
       >
-        <p className="px-2 py-1 font-mono text-[10px] tracking-[0.2em] text-white/40">
+        <p className="px-3 py-1.5 font-mono text-[10px] tracking-[0.2em] text-white/40 border-b border-white/10">
           LANGUAGE
         </p>
-        <ul>
+        <ul className="mt-1">
           {LANGUAGES.map(({ code, label }) => (
             <li key={code}>
               <button
@@ -66,10 +66,11 @@ export function SettingsControl() {
                   setOpen(false);
                 }}
                 aria-current={code === language}
-                className={`flex items-center w-full px-2 py-1.5 text-left text-sm rounded-lg transition-colors ${
+                /* 고른 것은 색이 아니라 굵기와 밝기로 가른다 — 필터 드롭다운과 같다 */
+                className={`flex items-center w-full px-3 py-1.5 text-left text-sm rounded-full transition-colors hover:bg-white/10 ${
                   code === language
-                    ? "text-[#b6f5d5] bg-white/10"
-                    : "text-white/70 hover:bg-white/5 hover:text-white"
+                    ? "font-semibold text-white"
+                    : "text-white/60 hover:text-white"
                 }`}
               >
                 {label}
