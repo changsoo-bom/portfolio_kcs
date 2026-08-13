@@ -19,7 +19,17 @@ import { LANGUAGES } from "../src/constants/languages.ts";
 
 const SOURCE =
   "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson";
-const DEST = new URL("../public/country-names.json", import.meta.url);
+/**
+ * 같은 표를 두 군데에 쓴다.
+ *
+ * `public/` 은 지도(클라이언트)가 실행 중에 받아 가는 것이고, `src/data/` 는
+ * 서버가 나라 목록을 그릴 때 바로 import 하는 것이다. 클라이언트가 import 하면
+ * 50KB 가 번들에 얹히고, 서버가 fetch 하면 자기 자신에게 요청을 보내야 한다.
+ */
+const DESTS = [
+  new URL("../public/country-names.json", import.meta.url),
+  new URL("../src/data/country-names.json", import.meta.url),
+];
 
 const CODES = LANGUAGES.map((language) => language.code);
 
@@ -45,5 +55,6 @@ for (const feature of source.features) {
   if (Object.keys(names).length > 0) table[key] = names;
 }
 
-writeFileSync(DEST, JSON.stringify(table));
-console.log(`${Object.keys(table).length} countries -> ${DEST.pathname}`);
+const json = JSON.stringify(table);
+for (const dest of DESTS) writeFileSync(dest, json);
+console.log(`${Object.keys(table).length} countries -> ${DESTS.length} files`);

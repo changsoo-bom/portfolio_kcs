@@ -72,6 +72,12 @@ export const nominatimReverseSchema = z.object({
  */
 export const mapSearchParamsSchema = z.object({
   region: z.string().min(1).max(32).optional().catch(undefined),
+  // ADM0_A3. 세 글자 코드만 받는다.
+  country: z
+    .string()
+    .regex(/^[A-Z0-9]{3}$/)
+    .optional()
+    .catch(undefined),
   // `node/240109189` 형태. 종류와 번호만 허용한다.
   place: z
     .string()

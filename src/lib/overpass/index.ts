@@ -1,4 +1,3 @@
-import regionIndex from "@/data/region-index.json";
 import {
   overpassElementSchema,
   overpassResponseSchema,
@@ -50,31 +49,6 @@ function commonsImage(file: string) {
 }
 
 const CATEGORIES: ReadonlySet<string> = new Set(ATTRACTION_CATEGORIES);
-
-type RegionEntry = { bbox: number[]; names: Record<string, string> };
-
-/** 생성된 JSON 이라 리터럴 타입이 붙는다. 여기서 한 번만 넓혀 쓴다. */
-const REGIONS: Record<string, RegionEntry> = regionIndex;
-
-/**
- * 구역 정보. 없는 id 면 null 이다 — 주소창을 손으로 고친 경우까지 여기서 막힌다.
- * 이 파일은 서버에서만 읽는다(1.3MB). 클라이언트 번들에 들어가지 않게 주의할 것.
- */
-export function regionEntryOf(
-  region: string,
-  language: LanguageCode,
-): { bounds: RegionBounds; name: string } | null {
-  const entry = REGIONS[region];
-  if (!entry || entry.bbox.length !== 4) return null;
-
-  const [west, south, east, north] = entry.bbox;
-  const { names } = entry;
-
-  return {
-    bounds: { west, south, east, north },
-    name: names[language] ?? names[FALLBACK_LANGUAGE] ?? names.local ?? region,
-  };
-}
 
 /** Overpass 의 상자 순서는 (남, 서, 북, 동) 이다 — 흔히 쓰는 순서와 다르다. */
 function buildQuery({ west, south, east, north }: RegionBounds) {

@@ -8,11 +8,17 @@ import { AttractionMarkers } from "@/components/world/attraction/AttractionMarke
 import { AttractionPanel } from "@/components/world/attraction/AttractionPanel";
 import { AttractionPanelShell } from "@/components/world/attraction/AttractionPanelShell";
 import { AttractionPop } from "@/components/world/attraction/AttractionPop";
+import { FilterBar } from "@/components/world/map/FilterBar";
 import { WorldScene } from "@/components/world/scene/WorldScene";
 import { DEFAULT_LANGUAGE, LANGUAGES } from "@/constants/languages";
 import { messagesOf } from "@/constants/messages";
 import type { LanguageCode } from "@/constants/languages";
-import { regionEntryOf } from "@/lib/overpass";
+import {
+  countryBoundsOf,
+  countryOptions,
+  regionEntryOf,
+  regionOptions,
+} from "@/lib/regions";
 import { mapSearchParamsSchema } from "@/lib/schemas/attraction";
 
 const CODES: ReadonlySet<string> = new Set(
@@ -25,7 +31,7 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
-  const { region, place } = mapSearchParamsSchema.parse(params);
+  const { region, place, country } = mapSearchParamsSchema.parse(params);
 
   const raw = params.lang;
 
@@ -50,7 +56,7 @@ export default async function Home({ searchParams }: HomeProps) {
    * 언어는 남긴다. 그건 고른 것이 아니라 설정이라 새로고침으로 풀리면 곤란하다.
    */
   const accept = (await headers()).get("accept") ?? "";
-  if ((region || place) && accept.includes("text/html")) {
+  if ((region || place || country) && accept.includes("text/html")) {
     const keep = new URLSearchParams();
     if (typeof raw === "string") keep.set("lang", raw);
     const query = keep.toString();
@@ -68,6 +74,20 @@ export default async function Home({ searchParams }: HomeProps) {
   const entry = region ? regionEntryOf(region, language) : null;
   const messages = messagesOf(language);
 
+  /**
+   * 필터 목록은 **서버가 그린다.** 나라·구역 이름표가 1.3MB 라 클라이언트로
+   * 보낼 물건이 아니고, 고른 값이 이미 주소에 있어서 목록도 여기서 정해진다.
+   *
+   * 구역을 골랐으면 나라는 그 앞 세 글자다 — 필터를 안 건드리고 지도만 눌러도
+   * 목록이 따라오는 게 이 한 줄이다.
+   */
+  const picked = country ?? region?.slice(0, 3) ?? null;
+  const target = entry
+    ? entry.bounds
+    : picked
+      ? countryBoundsOf(picked)
+      : null;
+
   /** 카드가 상세로 갈 때 붙일 파라미터. place 는 카드가 직접 얹는다. */
   const query = new URLSearchParams();
   if (region) query.set("region", region);
@@ -78,6 +98,12 @@ export default async function Home({ searchParams }: HomeProps) {
     // 모바일 브라우저 주소창 높이도 dvh 가 알아서 반영한다.
     <main className="relative h-dvh w-full overflow-hidden bg-black">
       <h1 className="sr-only">{messages.title}</h1>
+
+      <FilterBar
+        countries={countryOptions(language)}
+        regions={picked ? regionOptions(picked, language) : []}
+        target={target}
+      />
       <WorldScene />
 
       {/*

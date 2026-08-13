@@ -1,0 +1,112 @@
+import countryNames from "@/data/country-names.json";
+import regionIndex from "@/data/region-index.json";
+import { FALLBACK_LANGUAGE } from "@/constants/languages";
+import type { LanguageCode } from "@/constants/languages";
+import type { RegionBounds } from "@/types/attraction";
+
+/**
+ * 나라·구역 표 조회. **서버에서만 읽는다**(합쳐서 1.3MB).
+ * 클라이언트 번들에 들어가지 않게 주의할 것 — 목록은 서버가 그려서 내려준다.
+ */
+type RegionEntry = { bbox: number[]; names: Record<string, string> };
+
+/** 생성된 JSON 이라 리터럴 타입이 붙는다. 여기서 한 번만 넓혀 쓴다. */
+const REGIONS: Record<string, RegionEntry> = regionIndex;
+const COUNTRIES: Record<string, Record<string, string>> = countryNames;
+
+/** 드롭다운 한 줄. */
+export type RegionOption = { value: string; label: string };
+
+const nameOf = (names: Record<string, string>, language: LanguageCode) =>
+  names[language] ?? names[FALLBACK_LANGUAGE] ?? names.local;
+
+/**
+ * 구역 id 앞 세 글자가 나라 코드다 — Natural Earth 의 `adm1_code` 가
+ * `KOR-2496` 처럼 나라 코드로 시작한다. 이름 없는 구역이 `RUS+99?` 로
+ * 오기도 하는데 앞 세 글자는 그대로다.
+ */
+export const countryOf = (region: string) => region.slice(0, 3);
+
+/** 구역이 있는 나라만. 이름을 모르는 코드(군사기지·분쟁지 등)는 뺀다. */
+export function countryOptions(language: LanguageCode): RegionOption[] {
+  const codes = new Set(Object.keys(REGIONS).map(countryOf));
+
+  return [...codes]
+    .filter((code) => COUNTRIES[code])
+    .map((code) => ({ value: code, label: nameOf(COUNTRIES[code], language) }))
+    .sort((a, b) => a.label.localeCompare(b.label, language));
+}
+
+export function regionOptions(
+  country: string,
+  language: LanguageCode,
+): RegionOption[] {
+  return Object.entries(REGIONS)
+    .filter(([id]) => countryOf(id) === country)
+    .map(([id, entry]) => ({ value: id, label: nameOf(entry.names, language) }))
+    .filter((option) => option.label)
+    .sort((a, b) => a.label.localeCompare(b.label, language));
+}
+
+export function countryNameOf(country: string, language: LanguageCode) {
+  const names = COUNTRIES[country];
+  return names ? nameOf(names, language) : null;
+}
+
+/**
+ * 구역 정보. 없는 id 면 null 이다 — 주소창을 손으로 고친 경우까지 여기서 막힌다.
+ */
+export function regionEntryOf(
+  region: string,
+  language: LanguageCode,
+): { bounds: RegionBounds; name: string } | null {
+  const entry = REGIONS[region];
+  if (!entry || entry.bbox.length !== 4) return null;
+
+  const [west, south, east, north] = entry.bbox;
+
+  return {
+    bounds: { west, south, east, north },
+    name: nameOf(entry.names, language) ?? region,
+  };
+}
+
+/**
+ * 나라 전체를 감싸는 상자. 그 나라 구역들의 상자를 합친다.
+ *
+ * **날짜변경선을 넘는 나라가 있다**(러시아·미국·피지). 경도를 그대로 합치면
+ * 상자가 지구를 한 바퀴 감싸서 지구본 전체로 줌아웃된다. 음수 경도를 +360 해
+ * 한 번 더 재보고 그쪽이 좁으면 그 상자를 쓴다 — MapLibre 는 180 을 넘는
+ * 경도를 그대로 받는다.
+ */
+export function countryBoundsOf(country: string): RegionBounds | null {
+  const boxes = Object.entries(REGIONS)
+    .filter(([id]) => countryOf(id) === country)
+    .map(([, entry]) => entry.bbox)
+    .filter((bbox) => bbox.length === 4);
+  if (boxes.length === 0) return null;
+
+  const merge = (shift: boolean) => {
+    let west = Infinity;
+    let south = Infinity;
+    let east = -Infinity;
+    let north = -Infinity;
+
+    for (const [w, s, e, n] of boxes) {
+      const left = shift && w < 0 ? w + 360 : w;
+      const right = shift && e < 0 ? e + 360 : e;
+      west = Math.min(west, left);
+      east = Math.max(east, right);
+      south = Math.min(south, s);
+      north = Math.max(north, n);
+    }
+
+    return { west, south, east, north };
+  };
+
+  const plain = merge(false);
+  const shifted = merge(true);
+  const width = (box: RegionBounds) => box.east - box.west;
+
+  return width(shifted) < width(plain) ? shifted : plain;
+}

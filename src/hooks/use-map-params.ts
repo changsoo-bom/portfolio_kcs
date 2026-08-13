@@ -27,6 +27,8 @@ export function useMapParams() {
     raw && CODES.has(raw) ? (raw as LanguageCode) : DEFAULT_LANGUAGE;
 
   const region = searchParams.get("region");
+  /** 구역을 고르면 나라는 그 앞 세 글자로 정해진다 — 따로 안 적혀 있어도 안다. */
+  const country = searchParams.get("country") ?? region?.slice(0, 3) ?? null;
 
   /**
    * **주소를 훅이 준 값이 아니라 window 에서 읽는다.**
@@ -65,12 +67,37 @@ export function useMapParams() {
     [update],
   );
 
+  /**
+   * 나라는 위쪽 필터가 무엇을 고르고 있는지일 뿐이다 — 되돌리기 대상이 아니다.
+   * 지도를 훑는 동안 나라가 바뀔 때마다 히스토리에 쌓이면 뒤로가기가 지도
+   * 이동을 되감는 버튼이 된다.
+   */
+  const setCountry = useCallback(
+    (value: string | null) => {
+      update((params) => {
+        if (value) params.set("country", value);
+        else params.delete("country");
+        // 다른 나라로 옮기면 그 안에서 고른 구역은 뜻이 없다
+        if (params.get("region")?.slice(0, 3) !== value) {
+          params.delete("region");
+          params.delete("place");
+        }
+      }, true);
+    },
+    [update],
+  );
+
   // 구역은 되돌리기 대상이다 — 뒤로가기로 패널이 닫히는 게 자연스럽다.
   const setRegion = useCallback(
     (value: string | null) => {
       update((params) => {
-        if (value) params.set("region", value);
-        // 구역을 닫으면 그 안에서 열어 둔 장소도 같이 닫힌다
+        if (value) {
+          params.set("region", value);
+          // 필터의 나라 칸도 같이 맞춘다
+          params.set("country", value.slice(0, 3));
+        }
+        // 구역을 닫으면 그 안에서 열어 둔 장소도 같이 닫힌다.
+        // 나라는 남긴다 — 필터에서 옆 구역을 마저 고를 수 있어야 한다.
         else {
           params.delete("region");
           params.delete("place");
@@ -91,5 +118,13 @@ export function useMapParams() {
     [update],
   );
 
-  return { language, region, setLanguage, setRegion, setPlace };
+  return {
+    language,
+    country,
+    region,
+    setLanguage,
+    setCountry,
+    setRegion,
+    setPlace,
+  };
 }

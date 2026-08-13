@@ -4,10 +4,15 @@ import { GeoJSONSource, MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 
 import {
+  FIT_DURATION,
+  FIT_MAX_ZOOM,
+  FIT_PADDING,
   NO_PLACES,
   PLACE_MARKER,
   PLACE_MARKER_LABEL,
+  PANEL_WIDTH,
   PLACE_SOURCE,
+  REGION_FIT_MAX_ZOOM,
   setMapInstance,
 } from "@/components/world/map/map-instance";
 import { SettingsControl } from "@/components/world/map/SettingsControl";
@@ -175,29 +180,6 @@ const TILE_SIZE = 512;
 /** 툴팁이 화면 오른쪽 끝에서 이만큼 안으로 들어오면 커서 왼쪽에 붙인다(px). */
 const TOOLTIP_FLIP_EDGE = 200;
 
-/** 구역을 클릭했을 때 화면에 채우는 방식. 여백은 px, 지속시간은 ms. */
-const FIT_PADDING = 96;
-const FIT_DURATION = 1600;
-/** 룩셈부르크 같은 작은 나라에서 과하게 파고들지 않게 막는다. */
-const FIT_MAX_ZOOM = 5.5;
-/**
- * 지역을 눌렀을 때의 상한. 나라보다 높아야 한 단계 더 들어가는 게 된다.
- *
- * REGION_MAX_ZOOM 보다 살짝 아래로 잡았다 — 딱 그 값으로 가면 도착하는 순간
- * 지역 레이어가 꺼져서 방금 고른 것이 하이라이트도 안 되고 다시 누를 수도 없다.
- */
-const REGION_FIT_MAX_ZOOM = 8.5;
-
-/**
- * 명소 패널이 화면 오른쪽에서 가리는 폭(px).
- *
- * 지도는 자기 캔버스 전체를 기준으로 구역을 맞추기 때문에, 패널이 덮는 만큼을
- * 빼 주지 않으면 방금 고른 구역이 패널 밑에 반쯤 깔린다.
- * **`AttractionPanelShell` 의 `max-w-[22rem]` 과 같아야 한다** — Tailwind 클래스는
- * 빌드 때 문자열로 훑어서 이 값을 끼워 넣을 수 없다.
- */
-const PANEL_WIDTH = 352;
-
 const DEG = Math.PI / 180;
 /** 대원거리 코사인이 이보다 작으면 지구 뒤편으로 본다. 0.1 ≒ 84°. */
 const BACKFACE_COS = 0.1;
@@ -249,7 +231,7 @@ export function WorldMap() {
   const mapRef = useRef<MapLibreMap | null>(null);
   // setRegion 은 호출 시점의 주소를 직접 읽어서 렌더를 넘어 안정적이다 —
   // 마운트 때 한 번 붙는 지도 핸들러가 그대로 붙들어도 낡지 않는다.
-  const { language, setRegion, setPlace } = useMapParams();
+  const { language, setCountry, setRegion, setPlace } = useMapParams();
   /**
    * 호버한 대상의 **언어별 이름 전부**를 들고 있는다. 화면에 쓸 하나를 골라
    * 담아두면 언어를 바꿨을 때 커서를 다시 움직여야 갱신된다.
@@ -985,9 +967,16 @@ export function WorldMap() {
       const isRegion = layer === REGION_FILL;
       const limit = isRegion ? REGION_FIT_MAX_ZOOM : FIT_MAX_ZOOM;
 
-      // 구역을 고르면 주소에 남는다 → 서버가 그 구역의 명소 목록을 그린다
+      /**
+       * 고른 것이 주소에 남는다 → 서버가 명소 목록과 위쪽 필터를 다시 그린다.
+       * 지도를 눌러 고르든 필터에서 고르든 주소 한 곳만 보므로, 둘을 맞춰
+       * 주는 코드가 따로 없다.
+       */
       const regionId = feature.properties.id;
       if (isRegion && typeof regionId === "string") setRegion(regionId);
+      else if (!isRegion && typeof feature.properties.ADM0_A3 === "string") {
+        setCountry(feature.properties.ADM0_A3);
+      }
 
       const canvas = map.getCanvas();
       /**
@@ -1070,9 +1059,9 @@ export function WorldMap() {
       setMapInstance(null);
       map.remove();
     };
-    // setRegion·setPlace 는 router 하나에만 매여 있어 렌더를 넘어 그대로다 —
+    // 이 콜백들은 router 하나에만 매여 있어 렌더를 넘어 그대로다 —
     // 여기 넣어도 지도가 다시 만들어지지 않는다.
-  }, [setRegion, setPlace]);
+  }, [setCountry, setRegion, setPlace]);
 
   /**
    * 라벨 언어 교체.

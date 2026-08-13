@@ -20,6 +20,10 @@ type Messages = {
   zoomOut: string;
   zoomLevel: string;
 
+  country: string;
+  region: string;
+  goTo: string;
+
   searching: string;
   /** 개수는 언어마다 붙는 자리가 달라서 문장째로 만든다. */
   places: (count: number) => string;
@@ -47,6 +51,10 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     zoomIn: "확대",
     zoomOut: "축소",
     zoomLevel: "지도 배율",
+    country: "나라",
+    region: "지역",
+    goTo: "바로가기",
+
     searching: "찾는 중…",
     places: (count) => `${count}곳`,
     empty: "이 구역에서 찾은 명소가 없다.",
@@ -78,6 +86,10 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     zoomLevel: "Zoom level",
+    country: "Country",
+    region: "Region",
+    goTo: "Go",
+
     searching: "SEARCHING…",
     places: (count) => `${count} PLACES`,
     empty: "No places found in this area.",
@@ -109,6 +121,10 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     zoomIn: "拡大",
     zoomOut: "縮小",
     zoomLevel: "地図の倍率",
+    country: "国",
+    region: "地域",
+    goTo: "移動",
+
     searching: "検索中…",
     places: (count) => `${count}件`,
     empty: "この地域では名所が見つかりませんでした。",
@@ -141,6 +157,10 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     zoomIn: "放大",
     zoomOut: "缩小",
     zoomLevel: "地图缩放",
+    country: "国家",
+    region: "地区",
+    goTo: "前往",
+
     searching: "搜索中…",
     places: (count) => `${count} 个地点`,
     empty: "在该地区没有找到景点。",
@@ -172,6 +192,10 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     zoomIn: "Acercar",
     zoomOut: "Alejar",
     zoomLevel: "Nivel de zoom",
+    country: "País",
+    region: "Región",
+    goTo: "Ir",
+
     searching: "BUSCANDO…",
     places: (count) => `${count} LUGARES`,
     empty: "No se encontraron lugares en esta zona.",
@@ -204,6 +228,10 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     zoomIn: "Zoom avant",
     zoomOut: "Zoom arrière",
     zoomLevel: "Niveau de zoom",
+    country: "Pays",
+    region: "Région",
+    goTo: "Aller",
+
     searching: "RECHERCHE…",
     places: (count) => `${count} LIEUX`,
     empty: "Aucun lieu trouvé dans cette zone.",
@@ -236,6 +264,10 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     zoomIn: "Vergrößern",
     zoomOut: "Verkleinern",
     zoomLevel: "Zoomstufe",
+    country: "Land",
+    region: "Region",
+    goTo: "Los",
+
     searching: "SUCHE…",
     places: (count) => `${count} ORTE`,
     empty: "In diesem Gebiet wurden keine Orte gefunden.",
@@ -268,6 +300,10 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     zoomIn: "Приблизить",
     zoomOut: "Отдалить",
     zoomLevel: "Масштаб карты",
+    country: "Страна",
+    region: "Регион",
+    goTo: "Перейти",
+
     searching: "ПОИСК…",
     places: (count) => `${count} МЕСТ`,
     empty: "В этом районе мест не найдено.",
@@ -299,6 +335,10 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     zoomIn: "Aproximar",
     zoomOut: "Afastar",
     zoomLevel: "Nível de zoom",
+    country: "País",
+    region: "Região",
+    goTo: "Ir",
+
     searching: "BUSCANDO…",
     places: (count) => `${count} LUGARES`,
     empty: "Nenhum lugar encontrado nesta área.",
@@ -331,6 +371,10 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     zoomIn: "Phóng to",
     zoomOut: "Thu nhỏ",
     zoomLevel: "Mức thu phóng",
+    country: "Quốc gia",
+    region: "Vùng",
+    goTo: "Đi tới",
+
     searching: "ĐANG TÌM…",
     places: (count) => `${count} ĐỊA ĐIỂM`,
     empty: "Không tìm thấy địa điểm nào trong khu vực này.",
