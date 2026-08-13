@@ -128,7 +128,7 @@ export function CategoryChips({ counts, total }: CategoryChipsProps) {
       onPointerCancel={() => {
         drag.current.active = false;
       }}
-      className="flex gap-1.5 px-5 pb-3 overflow-x-auto chip-track cursor-grab active:cursor-grabbing"
+      className="flex gap-1.5 px-5 pt-3 pb-3 overflow-x-auto chip-track cursor-grab active:cursor-grabbing"
     >
       <button
         type="button"

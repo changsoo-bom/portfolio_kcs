@@ -9,7 +9,7 @@ import { onHoveredPlace, setHoveredPlace } from "@/lib/place-hover";
  * 목록과 지도의 손짓을 잇는다.
  *
  * 카드에 커서를 올리면 지도의 그 점이 커지고, 지도의 점에 올리면 그 카드가
- * 목록에서 밝아지며 보이는 자리로 스크롤된다.
+ * 목록에서 밝아진다.
  *
  * **카드는 서버 컴포넌트로 남는다.** 카드마다 클라이언트 경계를 두면 목록
  * 전체가 브라우저로 넘어가는데, 필요한 건 이벤트 하나뿐이다. 그래서 이
@@ -39,9 +39,12 @@ export function AttractionHoverBridge({ children }: { children: ReactNode }) {
         const target = root.querySelector(`[data-place="${CSS.escape(id)}"]`);
         if (!(target instanceof HTMLElement)) return;
 
+        /**
+         * **밝히기만 한다.** 목록을 그 카드로 스크롤까지 하면, 지도를 훑는
+         * 동안 옆에서 목록이 계속 따라 움직여 눈이 두 군데로 갈린다.
+         * 화면 안에 있으면 알아서 보이고, 밖에 있으면 굳이 끌어올 일이 아니다.
+         */
         target.dataset.active = "";
-        // nearest — 이미 보이는 카드는 건드리지 않는다. 그래야 화면이 안 튄다.
-        target.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }),
     [],
   );

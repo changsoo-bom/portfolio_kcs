@@ -861,7 +861,7 @@ export function WorldMap() {
       if (isMarker) {
         // 명소 이름은 조회할 때 이미 고른 언어로 받아 뒀다 — 고를 게 하나뿐이다
         if (typeof properties.name === "string") names.local = properties.name;
-        // 목록에서 그 카드가 밝아지며 보이는 자리로 스크롤된다
+        // 목록에서 그 카드가 밝아진다
         if (typeof properties.id === "string") {
           setHoveredPlace(properties.id, "map");
         }
