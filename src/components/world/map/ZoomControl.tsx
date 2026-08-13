@@ -21,7 +21,7 @@ type ZoomControlProps = {
 };
 
 const BUTTON =
-  "flex items-center justify-center w-6 h-6 text-base leading-none text-white/70 " +
+  "flex items-center justify-center w-5 h-6 text-base leading-none text-white/70 " +
   "rounded-full transition-colors hover:bg-white/10 hover:text-white";
 
 /**
@@ -45,9 +45,9 @@ const SLIDER = [
   "h-28 w-10 cursor-pointer appearance-none bg-transparent",
   "[direction:rtl] [writing-mode:vertical-lr]",
   "[&::-webkit-slider-runnable-track]:h-full [&::-webkit-slider-runnable-track]:w-3 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-white/15",
-  "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#b6f5d5]",
+  "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white",
   "[&::-moz-range-track]:h-full [&::-moz-range-track]:w-3 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-white/15",
-  "[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#b6f5d5]",
+  "[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white",
 ].join(" ");
 
 export function ZoomControl({

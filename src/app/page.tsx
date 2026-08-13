@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 
+import { AttractionCount } from "@/components/world/attraction/AttractionCount";
+import { AttractionListSkeleton } from "@/components/world/attraction/AttractionListSkeleton";
 import { AttractionPanel } from "@/components/world/attraction/AttractionPanel";
-import { AttractionPanelSkeleton } from "@/components/world/attraction/AttractionPanelSkeleton";
+import { AttractionPanelShell } from "@/components/world/attraction/AttractionPanelShell";
 import { AttractionPop } from "@/components/world/attraction/AttractionPop";
 import { WorldScene } from "@/components/world/scene/WorldScene";
 import { DEFAULT_LANGUAGE, LANGUAGES } from "@/constants/languages";
@@ -49,21 +51,29 @@ export default async function Home({ searchParams }: HomeProps) {
         Suspense 로 감싸 **지도가 먼저 뜨게** 한다. Overpass 응답이 몇 초 걸릴 수
         있는데 그동안 지구본까지 붙들려 있으면 클릭이 씹힌 것처럼 보인다.
 
+        기다림은 **껍데기 안쪽에만** 둔다. 껍데기까지 감싸면 목록이 도착할 때
+        패널이 통째로 새로 붙어서 등장 애니메이션이 한 번 더 돈다.
+
         key 에 구역을 넣어야 구역을 바꿀 때마다 대기 상태로 되돌아간다 —
         없으면 이전 구역 목록이 그대로 남아 있다가 툭 바뀐다.
       */}
       {entry && (
-        <Suspense
-          key={region}
-          fallback={<AttractionPanelSkeleton title={entry.name} />}
+        <AttractionPanelShell
+          title={entry.name}
+          count={
+            <Suspense key={region} fallback="SEARCHING…">
+              <AttractionCount bounds={entry.bounds} language={language} />
+            </Suspense>
+          }
         >
-          <AttractionPanel
-            title={entry.name}
-            bounds={entry.bounds}
-            language={language}
-            query={query.toString()}
-          />
-        </Suspense>
+          <Suspense key={region} fallback={<AttractionListSkeleton />}>
+            <AttractionPanel
+              bounds={entry.bounds}
+              language={language}
+              query={query.toString()}
+            />
+          </Suspense>
+        </AttractionPanelShell>
       )}
 
       {/*

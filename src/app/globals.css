@@ -10,6 +10,92 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --animate-panel-in: panel-in 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-panel-out: panel-out 260ms cubic-bezier(0.55, 0, 1, 0.45) forwards;
+  --animate-backdrop-in: backdrop-in 200ms ease-out;
+  --animate-pop-in: pop-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* forwards 가 없으면 끝나자마자 원래대로 돌아와 한 번 깜빡인다 */
+  --animate-backdrop-out: backdrop-out 160ms ease-in forwards;
+  --animate-pop-out: pop-out 160ms ease-in forwards;
+}
+
+/*
+  얇은 스크롤바. 목록이 주인공이라 막대가 자리를 차지하면 안 된다.
+  scrollbar-* 는 표준 속성이라 의사요소 두 벌을 따로 쓰지 않아도 된다.
+*/
+@utility scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.2) transparent;
+}
+
+/*
+  등장만 있고 퇴장은 없다 — 닫기는 주소가 바뀌며 노드가 사라지는 일이라
+  사라지는 걸 붙잡아 두려면 상태를 하나 더 들고 있어야 한다. 들어올 때
+  어디서 왔는지만 보여줘도 화면의 관계는 충분히 읽힌다.
+
+  translate·scale 은 transform 과 별개 속성이다. 따로 두면 Tailwind 의
+  transform 유틸리티와 부딪히지 않는다.
+*/
+/* 100% 는 패널 자기 너비다 — 화면 오른쪽 밖에 완전히 나가 있다가 밀려 들어온다 */
+@keyframes panel-in {
+  from {
+    translate: 100% 0;
+  }
+}
+
+/* 나갈 때가 더 빠르다 — 들어올 때는 뭐가 왔는지 볼 시간이 필요하지만, 치울 때는 아니다 */
+@keyframes panel-out {
+  to {
+    translate: 100% 0;
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 0.75rem;
+  }
+}
+
+/*
+  들어올 때를 reverse 로 되감지 않고 따로 쓴다. 이름이 같으면 브라우저가
+  **같은 애니메이션으로 보고 다시 시작하지 않는다** — 이미 끝난 상태라
+  끝났다는 신호가 두 번 오지 않고, 그 신호로 닫는 이쪽은 영영 안 닫힌다.
+*/
+@keyframes backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 0.75rem;
+  }
+}
+
+/* 움직임을 줄여 달라고 한 사람에게는 최종 상태만 보여준다 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-panel-in,
+  .animate-panel-out,
+  .animate-backdrop-in,
+  .animate-pop-in,
+  .animate-backdrop-out,
+  .animate-pop-out {
+    /* 0 으로 두면 끝났다는 신호가 안 와서 닫기가 영영 안 끝난다 */
+    animation-duration: 1ms;
+  }
 }
 
 body {
