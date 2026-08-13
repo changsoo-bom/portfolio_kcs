@@ -23,6 +23,7 @@ type Messages = {
   country: string;
   region: string;
   goTo: string;
+  reset: string;
   search: string;
   noMatch: string;
 
@@ -56,6 +57,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "나라",
     region: "지역",
     goTo: "바로가기",
+    reset: "초기화",
     search: "검색",
     noMatch: "결과 없음",
 
@@ -93,6 +95,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "Country",
     region: "Region",
     goTo: "Go",
+    reset: "Reset",
     search: "Search",
     noMatch: "No matches",
 
@@ -130,6 +133,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "国",
     region: "地域",
     goTo: "移動",
+    reset: "リセット",
     search: "検索",
     noMatch: "該当なし",
 
@@ -168,6 +172,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "国家",
     region: "地区",
     goTo: "前往",
+    reset: "重置",
     search: "搜索",
     noMatch: "无结果",
 
@@ -205,6 +210,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "País",
     region: "Región",
     goTo: "Ir",
+    reset: "Restablecer",
     search: "Buscar",
     noMatch: "Sin resultados",
 
@@ -243,6 +249,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "Pays",
     region: "Région",
     goTo: "Aller",
+    reset: "Réinitialiser",
     search: "Rechercher",
     noMatch: "Aucun résultat",
 
@@ -281,6 +288,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "Land",
     region: "Region",
     goTo: "Los",
+    reset: "Zurücksetzen",
     search: "Suchen",
     noMatch: "Keine Treffer",
 
@@ -319,6 +327,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "Страна",
     region: "Регион",
     goTo: "Перейти",
+    reset: "Сброс",
     search: "Поиск",
     noMatch: "Ничего не найдено",
 
@@ -356,6 +365,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "País",
     region: "Região",
     goTo: "Ir",
+    reset: "Redefinir",
     search: "Buscar",
     noMatch: "Sem resultados",
 
@@ -394,6 +404,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     country: "Quốc gia",
     region: "Vùng",
     goTo: "Đi tới",
+    reset: "Đặt lại",
     search: "Tìm kiếm",
     noMatch: "Không có kết quả",
 
