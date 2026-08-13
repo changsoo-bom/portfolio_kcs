@@ -22,7 +22,10 @@
  */
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 
-import { LANGUAGES } from "../src/constants/languages.ts";
+import {
+  FALLBACK_LANGUAGE,
+  LANGUAGES,
+} from "../src/constants/languages.ts";
 
 const CODES = LANGUAGES.map((language) => language.code);
 
@@ -50,6 +53,19 @@ const DEST_DIR = new URL("../public/admin1/", import.meta.url);
  * 로드하우섬이 같이 묶인다. adm1_code 는 Natural Earth 가 피처마다 매기는 값이다.
  */
 const INDEX_DEST = new URL("../src/data/region-index.json", import.meta.url);
+
+/**
+ * 구역 이름 라벨을 찍을 점.
+ *
+ * **지도 타일에는 구역 이름의 번역이 거의 없다.** OpenMapTiles 의 place 레이어는
+ * class=state 에 `name:ko` 를 가진 피처가 드물어서, 도시는 한국어인데 주 이름만
+ * 라틴 문자로 남는다("Kanem Region"). 이름이라면 이쪽 자료가 10개 언어를 다 갖고
+ * 있으니 라벨도 여기서 그린다.
+ *
+ * **면과 달리 전 세계를 한 파일로 둔다.** 점 하나에 이름 열 개뿐이라 가볍고,
+ * 나라별로 쪼개면 받아 둔 나라만 이름이 보여서 화면이 얼룩덜룩해진다.
+ */
+const LABEL_DEST = new URL("../public/admin1-labels.geojson", import.meta.url);
 
 /**
  * 간소화 허용 오차(도). 0.004° ≒ 450m.
@@ -151,6 +167,49 @@ function reducePolygon(rings) {
   return reduced.length > 0 ? reduced : null;
 }
 
+/**
+ * 이름을 찍을 한 점.
+ *
+ * Natural Earth 가 피처마다 라벨 좌표를 들고 있다 — 사람이 손으로 찍은 값이라
+ * 초승달 모양이나 섬이 딸린 구역에서도 육지 안쪽에 떨어진다. 없을 때만
+ * 가장 넓은 조각의 무게중심으로 대신한다.
+ */
+function labelPointOf(properties, geometry) {
+  const { longitude, latitude } = properties;
+  if (Number.isFinite(longitude) && Number.isFinite(latitude)) {
+    return round([longitude, latitude]);
+  }
+
+  const polygons =
+    geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
+
+  let best = null;
+  let bestArea = 0;
+
+  for (const rings of polygons) {
+    // 바깥 링만 본다 — 구멍까지 더하면 무게중심이 구멍 쪽으로 끌려간다
+    const [ring] = rings;
+    let twice = 0;
+    let x = 0;
+    let y = 0;
+
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const cross = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+      twice += cross;
+      x += (ring[j][0] + ring[i][0]) * cross;
+      y += (ring[j][1] + ring[i][1]) * cross;
+    }
+
+    const size = Math.abs(twice / 2);
+    if (size <= bestArea) continue;
+    bestArea = size;
+    // 면적이 0 인 링(간소화로 납작해진 조각)은 나누기가 터진다 — 첫 점을 쓴다
+    best = twice === 0 ? ring[0] : [x / (3 * twice), y / (3 * twice)];
+  }
+
+  return best && round(best);
+}
+
 console.log("downloading…");
 const response = await fetch(SOURCE);
 if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
@@ -159,6 +218,8 @@ console.log(`${source.features.length} features in`);
 
 /** ADM0_A3 → 그 나라의 피처들. */
 const byCountry = new Map();
+/** 이름 라벨 점. 나라를 가리지 않고 전부 한 파일에 들어간다. */
+const labels = [];
 
 for (const feature of source.features) {
   const { type, coordinates } = feature.geometry;
@@ -193,13 +254,48 @@ for (const feature of source.features) {
     if (value) properties[`name_${code}`] = value;
   }
 
+  const geometry = { type, coordinates: reduced };
+
   const bucket = byCountry.get(country) ?? [];
-  bucket.push({
-    type: "Feature",
-    properties,
-    geometry: { type, coordinates: reduced },
-  });
+  bucket.push({ type: "Feature", properties, geometry });
   byCountry.set(country, bucket);
+
+  const point = labelPointOf(feature.properties, geometry);
+  // 이름이 없는 구역은 라벨로 그릴 것도 없다
+  if (point && properties.name) {
+    const [west, south, east, north] = boxOf(
+      type === "Polygon" ? reduced : reduced.flat(),
+    );
+    /**
+     * 겹칠 때 남길 순서. 지도는 sort-key 가 **작은** 것을 먼저 놓으므로
+     * 넓은 구역일수록 음수로 크게 만든다 — 저배율에서 라벨이 서로 밀어낼 때
+     * 큰 주가 남고 작은 주가 접힌다.
+     */
+    const labelProperties = {
+      rank: -Math.round((east - west) * (north - south)),
+    };
+
+    /**
+     * **영어와 같은 이름은 안 담는다.** "Washington" 이 여섯 언어에 그대로
+     * 반복되는 식인데, 지도 쪽 coalesce 가 어차피 영어로 떨어지므로 결과가
+     * 같다. 이것만으로 파일이 4분의 1 줄었다.
+     */
+    const english = properties[`name_${FALLBACK_LANGUAGE}`];
+    for (const code of CODES) {
+      const value = properties[`name_${code}`];
+      if (!value) continue;
+      if (code !== FALLBACK_LANGUAGE && value === english) continue;
+      labelProperties[`name_${code}`] = value;
+    }
+    // 원어는 영어가 없을 때만 쓰인다
+    if (!english) labelProperties.name = properties.name;
+
+    labels.push({
+      type: "Feature",
+      properties: labelProperties,
+      geometry: { type: "Point", coordinates: point },
+    });
+  }
 }
 
 // 스크립트를 다시 돌렸을 때 사라진 나라 파일이 남지 않도록 통째로 갈아엎는다
@@ -272,6 +368,12 @@ for (const [country, features] of byCountry) {
   writeFileSync(new URL(`${country}.geojson`, DEST_DIR), json);
   bytes += json.length;
 }
+
+const labelJson = JSON.stringify({ type: "FeatureCollection", features: labels });
+writeFileSync(LABEL_DEST, labelJson);
+console.log(
+  `admin1-labels ${labels.length}개, ${(labelJson.length / 1024).toFixed(0)} KB`,
+);
 
 writeFileSync(INDEX_DEST, JSON.stringify(index));
 console.log(

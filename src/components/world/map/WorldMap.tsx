@@ -82,6 +82,19 @@ const labelTextField = (
   ["get", "name"],
 ];
 
+/**
+ * 구역 이름표. **여기는 밑줄이다**(`name_ko`) — 타일의 `name:ko` 와 다르다.
+ * 같은 자료를 호버 툴팁도 읽는다.
+ */
+const regionLabelTextField = (
+  language: LanguageCode,
+): ["coalesce", ["get", string], ["get", string], ["get", string]] => [
+  "coalesce",
+  ["get", `name_${language}`],
+  ["get", `name_${FALLBACK_LANGUAGE}`],
+  ["get", "name"],
+];
+
 /** 나라 이름 표. `scripts/build-country-names.mjs` 가 만든다. */
 const COUNTRY_NAMES_URL = "/country-names.json";
 /** 한글까지 들어 있는 폰트 스택. 별도 CJK 스택은 이 서버에 없다. */
@@ -148,6 +161,18 @@ const REGION_URL = (country: string) => `/admin1/${country}.geojson`;
 const REGION_MAX_ZOOM = 9;
 /** 아직 아무 나라도 안 골랐을 때의 초기값. */
 const NO_REGIONS = { type: "FeatureCollection", features: [] } as const;
+
+/**
+ * 구역 이름표. 위 폴리곤과 같은 자료에서 뽑은 점이다.
+ *
+ * **면과 달리 전 세계를 한 파일로 받는다.** 나라별로 쪼갠 면은 커서가 가리키는
+ * 나라만 받아도 되지만(칠할 대상이 거기뿐이니), 이름표는 화면에 든 나라가
+ * 전부 나와야 한다 — 받아 둔 나라만 한국어이고 옆 나라는 영어면 그게 더 이상하다.
+ * 점 하나에 이름 몇 개뿐이라 통째로 받아도 가볍다.
+ */
+const REGION_LABEL_SOURCE = "region-label";
+const REGION_LABEL = "region-label-text";
+const REGION_LABEL_URL = "/admin1-labels.geojson";
 
 /**
  * 명소 마커가 뜨는 배율.
@@ -307,6 +332,8 @@ export function WorldMap() {
             // 파일에 id 가 없다. feature-state 로 호버를 칠하려면 필요하다.
             generateId: true,
           },
+          // 주소만 주면 MapLibre 가 알아서 받아 온다 — fetch 를 따로 쓸 일이 없다
+          [REGION_LABEL_SOURCE]: { type: "geojson", data: REGION_LABEL_URL },
           /**
            * 명소. 빈 채로 선언해 두고, 구역을 고르면 서버가 받은 목록을
            * 여기에 갈아끼운다(AttractionMarkerLayer). 참조하는 레이어가
@@ -528,16 +555,67 @@ export function WorldMap() {
             },
           },
 
+          /**
+           * 구역 이름. **지도 타일에는 이 번역이 거의 없다** — place 레이어의
+           * class=state 피처는 `name:ko` 를 가진 것이 드물어서, 도시는 한국어인데
+           * 주 이름만 "Kanem Region" 처럼 라틴 문자로 남았다. 이름이라면 Natural
+           * Earth 쪽이 열 개 언어를 다 갖고 있으니 그걸로 그린다.
+           *
+           * 도시 라벨보다 **먼저** 정의해야 한다. MapLibre 는 심볼을 위 레이어부터
+           * 배치해서 먼저 놓은 쪽이 자리를 차지하는데, 둘이 겹치면 도시가 남아야 한다.
+           */
+          {
+            id: REGION_LABEL,
+            type: "symbol",
+            source: REGION_LABEL_SOURCE,
+            minzoom: DETAIL_FROM,
+            layout: {
+              "text-field": regionLabelTextField(DEFAULT_LANGUAGE),
+              "text-font": FONT,
+              "text-size": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                4,
+                10,
+                10,
+                13,
+              ],
+              // 자간을 벌려 지명과 구분한다 — 종이 지도가 행정구역에 쓰는 방식이다
+              "text-letter-spacing": 0.12,
+              "text-max-width": 8,
+              "text-padding": 6,
+              // 넓은 구역부터 자리를 잡는다(빌드 때 넣은 음수 면적)
+              "symbol-sort-key": ["get", "rank"],
+            },
+            paint: {
+              "text-color": GLOBE.label,
+              "text-halo-color": GLOBE.labelHalo,
+              "text-halo-width": 1.5,
+              // 도시보다 한 단계 물러나 있어야 위계가 읽힌다
+              "text-opacity": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                DETAIL_FROM,
+                0,
+                DETAIL_TO,
+                0.72,
+              ],
+            },
+          },
+
           {
             id: PLACE_LABEL,
             type: "symbol",
             source: DETAIL,
             "source-layer": "place",
             minzoom: DETAIL_FROM,
+            // state 는 위 레이어가 그린다 — 여기 두면 같은 주 이름이 영어로 겹친다
             filter: [
               "match",
               ["get", "class"],
-              ["country", "state", "city", "town"],
+              ["country", "city", "town"],
               true,
               false,
             ],
@@ -1084,6 +1162,11 @@ export function WorldMap() {
     const apply = () => {
       if (!map.getLayer(PLACE_LABEL)) return;
       map.setLayoutProperty(PLACE_LABEL, "text-field", labelTextField(language));
+      map.setLayoutProperty(
+        REGION_LABEL,
+        "text-field",
+        regionLabelTextField(language),
+      );
     };
 
     /**
