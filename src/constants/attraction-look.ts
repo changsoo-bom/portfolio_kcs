@@ -21,13 +21,4 @@ export const CATEGORY_LOOK: Record<
   gallery: { mark: "◫", tint: "from-[#5a3a6b] to-[#1f1226]" },
 };
 
-export const CATEGORY_LABEL: Record<AttractionCategory, string> = {
-  attraction: "명소",
-  museum: "박물관",
-  viewpoint: "전망",
-  theme_park: "테마파크",
-  zoo: "동물원",
-  aquarium: "아쿠아리움",
-  artwork: "조형물",
-  gallery: "갤러리",
-};
+// 분류 이름은 화면에 그대로 나가는 문구라 `constants/messages.ts` 에 언어별로 있다.

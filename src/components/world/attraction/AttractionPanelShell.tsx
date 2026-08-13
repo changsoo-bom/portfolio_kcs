@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 
+import { messagesOf } from "@/constants/messages";
 import { useMapParams } from "@/hooks/use-map-params";
 
 type AttractionPanelShellProps = {
@@ -30,7 +31,7 @@ export function AttractionPanelShell({
   count,
   children,
 }: AttractionPanelShellProps) {
-  const { setRegion } = useMapParams();
+  const { language, setRegion } = useMapParams();
   const [closing, setClosing] = useState(false);
 
   return (
@@ -58,7 +59,7 @@ export function AttractionPanelShell({
 
         <button
           type="button"
-          aria-label="닫기"
+          aria-label={messagesOf(language).close}
           onClick={() => setClosing(true)}
           className="flex items-center justify-center shrink-0 h-8 w-8 text-white/50 rounded-full transition-colors hover:bg-white/10 hover:text-white"
         >

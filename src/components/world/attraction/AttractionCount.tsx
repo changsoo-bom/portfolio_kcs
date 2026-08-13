@@ -1,3 +1,4 @@
+import { messagesOf } from "@/constants/messages";
 import { fetchAttractions } from "@/lib/overpass";
 import type { LanguageCode } from "@/constants/languages";
 import type { RegionBounds } from "@/types/attraction";
@@ -19,5 +20,5 @@ export async function AttractionCount({
   language,
 }: AttractionCountProps) {
   const { attractions } = await fetchAttractions(bounds, language);
-  return `${attractions.length} PLACES`;
+  return messagesOf(language).places(attractions.length);
 }

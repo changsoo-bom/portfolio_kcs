@@ -1,7 +1,11 @@
 import Image from "next/image";
+import { Suspense } from "react";
 
+import { AttractionAddress } from "@/components/world/attraction/AttractionAddress";
 import { AttractionPopShell } from "@/components/world/attraction/AttractionPopShell";
-import { CATEGORY_LABEL, CATEGORY_LOOK } from "@/constants/attraction-look";
+import { DetailRow } from "@/components/world/attraction/DetailRow";
+import { CATEGORY_LOOK } from "@/constants/attraction-look";
+import { messagesOf } from "@/constants/messages";
 import { fetchAttractions } from "@/lib/overpass";
 import type { LanguageCode } from "@/constants/languages";
 import type { RegionBounds } from "@/types/attraction";
@@ -10,6 +14,8 @@ type AttractionPopProps = {
   place: string;
   bounds: RegionBounds;
   language: LanguageCode;
+  /** 구역 이름. 구글 검색어를 좁히는 데 쓴다. */
+  region: string;
 };
 
 /** `ko:경복궁` → 위키백과 주소. 언어 접두사가 없으면 링크를 걸지 않는다. */
@@ -20,14 +26,9 @@ function wikipediaUrl(value: string) {
   return `https://${language}.wikipedia.org/wiki/${encodeURIComponent(title)}`;
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex gap-4 py-2.5 border-t border-white/5">
-      <dt className="shrink-0 w-16 text-xs text-white/35">{label}</dt>
-      <dd className="min-w-0 text-sm break-words text-white/80">{children}</dd>
-    </div>
-  );
-}
+const LINK =
+  "px-3 py-1.5 text-xs text-white/70 bg-white/5 rounded-full transition-colors " +
+  "hover:bg-white/10 hover:text-white";
 
 /**
  * 장소 상세.
@@ -40,15 +41,25 @@ export async function AttractionPop({
   place,
   bounds,
   language,
+  region,
 }: AttractionPopProps) {
   const { attractions } = await fetchAttractions(bounds, language);
   const attraction = attractions.find((item) => item.id === place);
   if (!attraction) return null;
 
   const look = CATEGORY_LOOK[attraction.category];
+  const messages = messagesOf(language);
   const wikipedia = attraction.wikipedia
     ? wikipediaUrl(attraction.wikipedia)
     : undefined;
+
+  /**
+   * 이름만으로는 "국립박물관" 같은 것이 세계 곳곳에 있다. 구역 이름을 붙여
+   * 검색어를 좁힌다.
+   */
+  const search = `https://www.google.com/search?q=${encodeURIComponent(
+    `${attraction.name} ${region}`,
+  )}`;
 
   return (
     <AttractionPopShell>
@@ -74,7 +85,7 @@ export async function AttractionPop({
 
       <div className="px-6 pt-5 pb-6">
         <p className="font-mono text-[10px] tracking-[0.2em] text-[#b6f5d5]">
-          {CATEGORY_LABEL[attraction.category].toUpperCase()}
+          {messages.categories[attraction.category].toUpperCase()}
         </p>
         <h3 className="mt-1 text-xl text-white">{attraction.name}</h3>
 
@@ -85,21 +96,42 @@ export async function AttractionPop({
         )}
 
         <dl className="mt-5">
-          {attraction.address && (
-            <Row label="주소">{attraction.address}</Row>
+          {/*
+            주소가 태그에 있으면 그걸 쓰고, 없으면 좌표로 짚는다.
+            짚는 쪽은 바깥 서버를 한 번 더 타므로 따로 흘려보낸다 —
+            같이 묶으면 카드를 눌러도 모달이 안 열린 것처럼 보인다.
+          */}
+          {attraction.address ? (
+            <DetailRow label={messages.address}>{attraction.address}</DetailRow>
+          ) : (
+            <Suspense
+              fallback={
+                <DetailRow label={messages.address}>
+                  <span className="text-white/30">{messages.locating}</span>
+                </DetailRow>
+              }
+            >
+              <AttractionAddress
+                lat={attraction.lat}
+                lng={attraction.lng}
+                language={language}
+              />
+            </Suspense>
           )}
           {attraction.openingHours && (
-            <Row label="영업시간">{attraction.openingHours}</Row>
+            <DetailRow label={messages.openingHours}>
+              {attraction.openingHours}
+            </DetailRow>
           )}
           {attraction.phone && (
-            <Row label="전화">
+            <DetailRow label={messages.phone}>
               <a href={`tel:${attraction.phone}`} className="hover:text-white">
                 {attraction.phone}
               </a>
-            </Row>
+            </DetailRow>
           )}
           {attraction.website && (
-            <Row label="웹사이트">
+            <DetailRow label={messages.website}>
               <a
                 href={attraction.website}
                 target="_blank"
@@ -108,31 +140,43 @@ export async function AttractionPop({
               >
                 {attraction.website.replace(/^https?:\/\//, "")}
               </a>
-            </Row>
+            </DetailRow>
           )}
-          <Row label="좌표">
+          <DetailRow label={messages.coordinates}>
             <span className="font-mono text-xs">
               {attraction.lat.toFixed(5)}, {attraction.lng.toFixed(5)}
             </span>
-          </Row>
+          </DetailRow>
         </dl>
 
         <div className="flex flex-wrap gap-2 mt-5">
+          {/*
+            OSM 태그는 비어 있는 쪽이 흔하다. 더 알아볼 곳을 항상 하나는
+            남겨 두려고 검색 링크는 조건 없이 넣는다.
+          */}
+          <a
+            href={search}
+            target="_blank"
+            rel="noreferrer noopener"
+            className={LINK}
+          >
+            {messages.googleSearch}
+          </a>
           {wikipedia && (
             <a
               href={wikipedia}
               target="_blank"
               rel="noreferrer noopener"
-              className="px-3 py-1.5 text-xs text-white/70 bg-white/5 rounded-full transition-colors hover:bg-white/10 hover:text-white"
+              className={LINK}
             >
-              위키백과
+              {messages.wikipedia}
             </a>
           )}
           <a
             href={`https://www.openstreetmap.org/${attraction.id}`}
             target="_blank"
             rel="noreferrer noopener"
-            className="px-3 py-1.5 text-xs text-white/70 bg-white/5 rounded-full transition-colors hover:bg-white/10 hover:text-white"
+            className={LINK}
           >
             OpenStreetMap
           </a>

@@ -1082,9 +1082,32 @@ export function WorldMap() {
    * 마운트 직후에는 스타일이 아직 없을 수 있어 레이어 존재를 확인한다.
    */
   useEffect(() => {
+    /**
+     * 문서 언어도 여기서 맞춘다. `<html lang>` 은 레이아웃에 박혀 있는데
+     * 레이아웃은 검색 파라미터를 못 읽는다 — 그대로 두면 일본어로 보는
+     * 화면을 스크린리더가 한국어로 읽는다.
+     */
+    document.documentElement.lang = language;
+
     const map = mapRef.current;
-    if (!map?.getLayer(PLACE_LABEL)) return;
-    map.setLayoutProperty(PLACE_LABEL, "text-field", labelTextField(language));
+    if (!map) return;
+
+    const apply = () => {
+      if (!map.getLayer(PLACE_LABEL)) return;
+      map.setLayoutProperty(PLACE_LABEL, "text-field", labelTextField(language));
+    };
+
+    /**
+     * **스타일이 앉기를 기다려야 한다.** 여기서 그냥 돌려보내면, 주소에 언어를
+     * 달고 처음 들어온 경우 이 effect 는 레이어가 없어 아무것도 못 하고 다시
+     * 불릴 일도 없다 — 지도 라벨만 기본 언어로 남는다.
+     */
+    if (map.isStyleLoaded()) apply();
+    else map.once("load", apply);
+
+    return () => {
+      map.off("load", apply);
+    };
   }, [language]);
 
   return (
@@ -1117,6 +1140,7 @@ export function WorldMap() {
       {/* 두 컨트롤을 한 컬럼에 묶는다 — 따로 고정하면 간격을 손으로 맞춰야 한다 */}
       <div className="fixed top-6 left-6 z-20 flex flex-col items-center gap-2">
         <ZoomControl
+          language={language}
           min={MIN_ZOOM}
           max={MAX_ZOOM}
           sliderRef={sliderRef}

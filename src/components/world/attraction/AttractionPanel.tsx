@@ -1,4 +1,5 @@
 import { AttractionCard } from "@/components/world/attraction/AttractionCard";
+import { messagesOf } from "@/constants/messages";
 import { fetchAttractions } from "@/lib/overpass";
 import type { LanguageCode } from "@/constants/languages";
 import type { RegionBounds } from "@/types/attraction";
@@ -23,13 +24,12 @@ export async function AttractionPanel({
   query,
 }: AttractionPanelProps) {
   const { status, attractions } = await fetchAttractions(bounds, language);
+  const messages = messagesOf(language);
 
   if (attractions.length === 0) {
     return (
       <p className="px-5 py-10 text-sm leading-relaxed text-white/40">
-        {status === "unavailable"
-          ? "지금은 명소를 불러오지 못했다. 잠시 뒤에 다시 눌러보자."
-          : "이 구역에서 찾은 명소가 없다."}
+        {status === "unavailable" ? messages.unavailable : messages.empty}
       </p>
     );
   }
@@ -38,7 +38,11 @@ export async function AttractionPanel({
     <ul className="grid grid-cols-2 gap-3 px-4 pt-4 pb-8">
       {attractions.map((attraction) => (
         <li key={attraction.id}>
-          <AttractionCard attraction={attraction} query={query} />
+          <AttractionCard
+            attraction={attraction}
+            query={query}
+            language={language}
+          />
         </li>
       ))}
     </ul>

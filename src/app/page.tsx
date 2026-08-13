@@ -10,6 +10,7 @@ import { AttractionPanelShell } from "@/components/world/attraction/AttractionPa
 import { AttractionPop } from "@/components/world/attraction/AttractionPop";
 import { WorldScene } from "@/components/world/scene/WorldScene";
 import { DEFAULT_LANGUAGE, LANGUAGES } from "@/constants/languages";
+import { messagesOf } from "@/constants/messages";
 import type { LanguageCode } from "@/constants/languages";
 import { regionEntryOf } from "@/lib/overpass";
 import { mapSearchParamsSchema } from "@/lib/schemas/attraction";
@@ -65,6 +66,7 @@ export default async function Home({ searchParams }: HomeProps) {
    * 시간이 걸리는 건 명소 조회뿐이라, 제목을 먼저 넘겨 기다리는 화면부터 띄운다.
    */
   const entry = region ? regionEntryOf(region, language) : null;
+  const messages = messagesOf(language);
 
   /** 카드가 상세로 갈 때 붙일 파라미터. place 는 카드가 직접 얹는다. */
   const query = new URLSearchParams();
@@ -75,7 +77,7 @@ export default async function Home({ searchParams }: HomeProps) {
     // h-dvh 로 높이를 직접 잡는다 — html/body 로 이어지는 퍼센트 사슬에 기대지 않고,
     // 모바일 브라우저 주소창 높이도 dvh 가 알아서 반영한다.
     <main className="relative h-dvh w-full overflow-hidden bg-black">
-      <h1 className="sr-only">세계 명소 탐색 지도</h1>
+      <h1 className="sr-only">{messages.title}</h1>
       <WorldScene />
 
       {/*
@@ -102,7 +104,7 @@ export default async function Home({ searchParams }: HomeProps) {
         <AttractionPanelShell
           title={entry.name}
           count={
-            <Suspense key={region} fallback="SEARCHING…">
+            <Suspense key={region} fallback={messages.searching}>
               <AttractionCount bounds={entry.bounds} language={language} />
             </Suspense>
           }
@@ -128,6 +130,7 @@ export default async function Home({ searchParams }: HomeProps) {
             place={place}
             bounds={entry.bounds}
             language={language}
+            region={entry.name}
           />
         </Suspense>
       )}

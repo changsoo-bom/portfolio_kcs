@@ -2,7 +2,11 @@
 
 import type { RefObject } from "react";
 
+import { messagesOf } from "@/constants/messages";
+import type { LanguageCode } from "@/constants/languages";
+
 type ZoomControlProps = {
+  language: LanguageCode;
   /** 0% 에 해당하는 배율. */
   min: number;
   /** 100% 에 해당하는 배율. */
@@ -51,6 +55,7 @@ const SLIDER = [
 ].join(" ");
 
 export function ZoomControl({
+  language,
   min,
   max,
   sliderRef,
@@ -58,13 +63,15 @@ export function ZoomControl({
   onSlide,
   onStep,
 }: ZoomControlProps) {
+  const messages = messagesOf(language);
+
   return (
     // 폭을 톱니바퀴 버튼(w-10)과 맞춰 한 줄로 읽히게 한다.
     // 화면 고정은 부모가 한다 — 설정 버튼과 세로로 붙어 있어야 해서.
     <div className="flex flex-col items-center gap-0.5 w-10 py-1.5 rounded-full border border-white/15 bg-black/60 backdrop-blur">
       <button
         type="button"
-        aria-label="확대"
+        aria-label={messages.zoomIn}
         onClick={() => onStep(1)}
         className={BUTTON}
       >
@@ -81,7 +88,7 @@ export function ZoomControl({
       <input
         ref={sliderRef}
         type="range"
-        aria-label="지도 배율"
+        aria-label={messages.zoomLevel}
         min={min}
         max={max}
         // 배율 자체를 값으로 쓴다 — 퍼센트로 변환하면 양쪽에서 두 번 왕복한다
@@ -93,7 +100,7 @@ export function ZoomControl({
 
       <button
         type="button"
-        aria-label="축소"
+        aria-label={messages.zoomOut}
         onClick={() => onStep(-1)}
         className={BUTTON}
       >

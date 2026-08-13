@@ -1,13 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { CATEGORY_LABEL, CATEGORY_LOOK } from "@/constants/attraction-look";
+import { CATEGORY_LOOK } from "@/constants/attraction-look";
+import { messagesOf } from "@/constants/messages";
 import type { Attraction } from "@/types/attraction";
+import type { LanguageCode } from "@/constants/languages";
 
 type AttractionCardProps = {
   attraction: Attraction;
   /** 지금 주소의 파라미터. 여기에 place 만 얹어 상세를 연다. */
   query: string;
+  language: LanguageCode;
 };
 
 /**
@@ -16,8 +19,13 @@ type AttractionCardProps = {
  * 상세를 주소에 두면 그 링크가 그대로 공유되고, 새 탭으로 열거나 뒤로가기로
  * 닫는 것이 공짜로 따라온다. 서버 컴포넌트로 남아 초기 HTML 에도 들어간다.
  */
-export function AttractionCard({ attraction, query }: AttractionCardProps) {
+export function AttractionCard({
+  attraction,
+  query,
+  language,
+}: AttractionCardProps) {
   const look = CATEGORY_LOOK[attraction.category];
+  const messages = messagesOf(language);
 
   return (
     <Link
@@ -52,7 +60,7 @@ export function AttractionCard({ attraction, query }: AttractionCardProps) {
           {attraction.name}
         </p>
         <p className="mt-1 text-[10px] text-white/35">
-          {CATEGORY_LABEL[attraction.category]}
+          {messages.categories[attraction.category]}
         </p>
       </div>
     </Link>

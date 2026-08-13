@@ -54,6 +54,17 @@ export const wikidataEntitiesSchema = z.object({
 });
 
 /**
+ * Nominatim 역지오코딩 응답.
+ *
+ * **`display_name` 을 쓰지 않는다** — 그건 작은 단위부터 늘어놓은 문자열이라
+ * 한국어 주소 순서와 반대다. 조각(`address`)을 받아 직접 잇는다.
+ * 좌표를 못 짚으면 `{ error: ... }` 만 오므로 둘 다 optional 이다.
+ */
+export const nominatimReverseSchema = z.object({
+  address: z.record(z.string(), z.string()).optional(),
+});
+
+/**
  * 지도에서 넘어오는 검색 파라미터.
  *
  * 값이 이상하면 오류를 내지 않고 **없는 것으로 떨어뜨린다** — 주소창을 손으로

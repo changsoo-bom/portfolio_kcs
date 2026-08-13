@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { LANGUAGES } from "@/constants/languages";
+import { messagesOf } from "@/constants/messages";
 import { useMapParams } from "@/hooks/use-map-params";
 
 export function SettingsControl() {
@@ -14,7 +15,7 @@ export function SettingsControl() {
     <div className="relative">
       <button
         type="button"
-        aria-label="설정"
+        aria-label={messagesOf(language).settings}
         aria-expanded={open}
         onClick={() => setOpen((previous) => !previous)}
         className={`flex items-center justify-center h-10 w-10 rounded-full border border-white/15 bg-black/60 backdrop-blur transition-colors ${

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 
+import { messagesOf } from "@/constants/messages";
 import { useMapParams } from "@/hooks/use-map-params";
 
 /**
@@ -16,8 +17,9 @@ import { useMapParams } from "@/hooks/use-map-params";
  * 닫는 모양으로 바꾸고, 애니메이션이 끝났다는 신호를 받은 뒤에 주소를 바꾼다.
  */
 export function AttractionPopShell({ children }: { children: ReactNode }) {
-  const { setPlace } = useMapParams();
+  const { language, setPlace } = useMapParams();
   const [closing, setClosing] = useState(false);
+  const close = messagesOf(language).close;
 
   return (
     <div
@@ -31,7 +33,7 @@ export function AttractionPopShell({ children }: { children: ReactNode }) {
       */}
       <button
         type="button"
-        aria-label="닫기"
+        aria-label={close}
         onClick={() => setClosing(true)}
         className={`absolute inset-0 h-full w-full bg-black/60 cursor-default ${
           closing ? "animate-backdrop-out" : "animate-backdrop-in"
@@ -61,7 +63,7 @@ export function AttractionPopShell({ children }: { children: ReactNode }) {
       >
         <button
           type="button"
-          aria-label="닫기"
+          aria-label={close}
           onClick={() => setClosing(true)}
           className="absolute top-3 right-3 z-10 flex items-center justify-center h-8 w-8 text-white/70 bg-black/50 rounded-full backdrop-blur transition-colors hover:bg-black/70 hover:text-white"
         >
