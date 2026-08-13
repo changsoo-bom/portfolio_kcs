@@ -31,7 +31,13 @@ export function CategoryChips({ counts, total }: CategoryChipsProps) {
    * 미는 중인지. **state 로 두면 미는 동안 칩이 매 프레임 다시 그려진다** —
    * 필요한 건 화면이 아니라 scrollLeft 하나라서 ref 에 담는다.
    */
-  const drag = useRef({ active: false, startX: 0, startLeft: 0, moved: 0 });
+  const drag = useRef({
+    active: false,
+    startX: 0,
+    startLeft: 0,
+    moved: 0,
+    captured: false,
+  });
 
   /** 양 끝에 닿았는지에 따라 흐림을 켜고 끈다. */
   const syncEdges = () => {
@@ -86,9 +92,15 @@ export function CategoryChips({ counts, total }: CategoryChipsProps) {
           startX: event.clientX,
           startLeft: track.scrollLeft,
           moved: 0,
+          captured: false,
         };
-        // 띠 밖으로 커서가 나가도 계속 따라온다
-        track.setPointerCapture(event.pointerId);
+        /**
+         * **여기서 포인터를 잡으면 칩 클릭이 죽는다.**
+         *
+         * 캡처가 걸리면 이어지는 click 이 칩 버튼이 아니라 이 띠에서 발생해서
+         * 버튼의 onClick 이 아예 안 불린다 — 미는 것만 되고 고르기가 안 된다.
+         * 그래서 실제로 밀기 시작한 뒤(아래)에 잡는다.
+         */
       }}
       onPointerMove={(event) => {
         const track = trackRef.current;
@@ -96,10 +108,21 @@ export function CategoryChips({ counts, total }: CategoryChipsProps) {
 
         const dx = event.clientX - drag.current.startX;
         drag.current.moved = Math.max(drag.current.moved, Math.abs(dx));
+
+        // 문턱을 넘어 확실히 미는 중일 때만 잡는다. 그래야 띠 밖으로 커서가
+        // 나가도 따라오면서, 제자리 클릭은 칩까지 그대로 간다.
+        if (!drag.current.captured && drag.current.moved > DRAG_SLOP) {
+          track.setPointerCapture(event.pointerId);
+          drag.current.captured = true;
+        }
+
         track.scrollLeft = drag.current.startLeft - dx;
       }}
       onPointerUp={(event) => {
         drag.current.active = false;
+        if (!drag.current.captured) return;
+
+        drag.current.captured = false;
         trackRef.current?.releasePointerCapture(event.pointerId);
       }}
       onPointerCancel={() => {
