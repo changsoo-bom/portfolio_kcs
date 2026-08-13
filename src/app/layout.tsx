@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "World Atlas",
-  description: "세계지도에서 나라와 지역을 따라 들어가 주요 명소를 찾는다.",
+  description: "세계지도에서 나라와 지역을 따라 들어가 주요 명소를 찾습니다.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
