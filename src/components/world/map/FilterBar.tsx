@@ -1,5 +1,7 @@
 "use client";
 
+import { Send } from "lucide-react";
+
 import { Dropdown } from "@/components/ui/Dropdown";
 import {
   FIT_DURATION,
@@ -83,13 +85,20 @@ export function FilterBar({ countries, regions, target }: FilterBarProps) {
         onChange={setRegion}
       />
 
+      {/*
+        글자 대신 종이비행기. 옆의 두 칸이 200px 씩이라 여기까지 글자가 붙으면
+        막대가 길어지고, 무엇보다 이건 **고르는 칸이 아니라 실행 버튼**이라
+        모양이 달라야 눈에 갈린다. 이름은 aria-label 로 남는다.
+      */}
       <button
         type="button"
+        aria-label={messages.goTo}
+        title={messages.goTo}
         onClick={goTo}
         disabled={!target}
-        className="flex items-center h-9 px-4 text-sm text-black bg-[#b6f5d5] rounded-full transition-colors hover:bg-white disabled:bg-white/10 disabled:text-white/25"
+        className="flex items-center justify-center h-9 w-9 text-black bg-[#b6f5d5] rounded-full transition-colors hover:bg-white disabled:bg-white/10 disabled:text-white/25"
       >
-        {messages.goTo}
+        <Send className="h-4 w-4" />
       </button>
     </div>
   );
