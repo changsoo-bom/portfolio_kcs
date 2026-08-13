@@ -42,6 +42,8 @@ export function AttractionPanelShell({
       onAnimationEnd={(event) => {
         if (closing && event.target === event.currentTarget) setRegion(null);
       }}
+      // max-w-[22rem] 은 WorldMap 의 PANEL_WIDTH 와 짝이다 — 지도가 구역을
+      // 화면에 맞출 때 이 폭만큼 빼고 계산한다
       className={`fixed top-0 right-0 z-20 flex flex-col h-dvh w-full max-w-[22rem] border-l border-white/10 bg-black/80 backdrop-blur ${
         closing ? "animate-panel-out" : "animate-panel-in"
       }`}

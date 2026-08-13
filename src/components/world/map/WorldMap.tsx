@@ -175,8 +175,9 @@ const TILE_SIZE = 512;
 /** 툴팁이 화면 오른쪽 끝에서 이만큼 안으로 들어오면 커서 왼쪽에 붙인다(px). */
 const TOOLTIP_FLIP_EDGE = 200;
 
-/** 나라를 클릭했을 때 화면에 채우는 방식. 여백은 px, 지속시간은 ms. */
+/** 구역을 클릭했을 때 화면에 채우는 방식. 여백은 px, 지속시간은 ms. */
 const FIT_PADDING = 96;
+const FIT_DURATION = 1600;
 /** 룩셈부르크 같은 작은 나라에서 과하게 파고들지 않게 막는다. */
 const FIT_MAX_ZOOM = 5.5;
 /**
@@ -186,7 +187,16 @@ const FIT_MAX_ZOOM = 5.5;
  * 지역 레이어가 꺼져서 방금 고른 것이 하이라이트도 안 되고 다시 누를 수도 없다.
  */
 const REGION_FIT_MAX_ZOOM = 8.5;
-const FIT_DURATION = 1600;
+
+/**
+ * 명소 패널이 화면 오른쪽에서 가리는 폭(px).
+ *
+ * 지도는 자기 캔버스 전체를 기준으로 구역을 맞추기 때문에, 패널이 덮는 만큼을
+ * 빼 주지 않으면 방금 고른 구역이 패널 밑에 반쯤 깔린다.
+ * **`AttractionPanelShell` 의 `max-w-[22rem]` 과 같아야 한다** — Tailwind 클래스는
+ * 빌드 때 문자열로 훑어서 이 값을 끼워 넣을 수 없다.
+ */
+const PANEL_WIDTH = 352;
 
 const DEG = Math.PI / 180;
 /** 대원거리 코사인이 이보다 작으면 지구 뒤편으로 본다. 0.1 ≒ 84°. */
@@ -979,22 +989,31 @@ export function WorldMap() {
       const regionId = feature.properties.id;
       if (isRegion && typeof regionId === "string") setRegion(regionId);
 
+      const canvas = map.getCanvas();
+      /**
+       * 지역을 누르면 오른쪽에 명소 패널이 열린다 — 그만큼은 보이는 화면이
+       * 아니다. 빼지 않으면 방금 고른 지역이 패널 밑에 반쯤 깔린다.
+       * 화면이 패널보다 좁으면 뺄 자리가 없으니 그때는 캔버스 전체를 쓴다.
+       */
+      const covered =
+        isRegion && canvas.clientWidth > PANEL_WIDTH * 2 ? PANEL_WIDTH : 0;
+
       const box = screenBoxOf(feature.id, event.lngLat, layer);
       // 조각을 못 찾으면(있을 리 없지만) 최소한 클릭한 지점은 가운데로 보낸다
       if (!box) {
         map.flyTo({
           center: event.lngLat,
+          offset: [-covered / 2, 0],
           zoom: limit,
           duration: FIT_DURATION,
         });
         return;
       }
 
-      const canvas = map.getCanvas();
       // 1px 바닥은 0 나누기 방지용이다 — 아주 작은 나라는 어차피 상한에 걸린다
       const scale =
         Math.min(
-          (canvas.clientWidth - FIT_PADDING * 2) /
+          (canvas.clientWidth - covered - FIT_PADDING * 2) /
             Math.max(box.right - box.left, 1),
           (canvas.clientHeight - FIT_PADDING * 2) /
             Math.max(box.bottom - box.top, 1),
@@ -1005,6 +1024,8 @@ export function WorldMap() {
           (box.left + box.right) / 2,
           (box.top + box.bottom) / 2,
         ]),
+        // 도착 배율 기준 픽셀이라, 화면 좌표로 미리 밀어 두는 것보다 정확하다
+        offset: [-covered / 2, 0],
         // 배율은 2^zoom 에 비례하므로 로그를 취해 현재 배율에 더한다.
         // 음수는 자른다 — 나라를 클릭했는데 줌아웃되면 그게 제일 이상하다.
         zoom: Math.min(map.getZoom() + Math.max(Math.log2(scale), 0), limit),

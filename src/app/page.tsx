@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AttractionCount } from "@/components/world/attraction/AttractionCount";
@@ -25,6 +27,27 @@ export default async function Home({ searchParams }: HomeProps) {
   const { region, place } = mapSearchParamsSchema.parse(params);
 
   const raw = params.lang;
+
+  /**
+   * **새로고침하면 지구본으로 돌아간다.**
+   *
+   * 고른 구역은 뒤로가기 때문에 주소에 두지만, 주소를 새로 여는 것은 처음부터
+   * 시작한다는 뜻이다. 그래서 문서를 통째로 요청한 경우 — 새로고침·주소창
+   * 입력·링크 열기 — 에만 턴다. 화면 안에서의 이동은 `fetch` 라 걸리지 않는다.
+   *
+   * **Next 의 `rsc` 헤더로는 못 가른다.** 캐시가 그 헤더에 따라 갈라지지 않도록
+   * `stripFlightHeaders` 가 앱에 넘기기 전에 지운다. 브라우저가 붙이는 표준
+   * 헤더를 쓴다 — 없는 브라우저(사파리 16.4 미만)에서는 그냥 안 턴다.
+   *
+   * 언어는 남긴다. 그건 고른 것이 아니라 설정이라 새로고침으로 풀리면 곤란하다.
+   */
+  const dest = (await headers()).get("sec-fetch-dest");
+  if ((region || place) && dest === "document") {
+    const keep = new URLSearchParams();
+    if (typeof raw === "string") keep.set("lang", raw);
+    const query = keep.toString();
+    redirect(query ? `/?${query}` : "/");
+  }
   const language: LanguageCode =
     typeof raw === "string" && CODES.has(raw)
       ? (raw as LanguageCode)
