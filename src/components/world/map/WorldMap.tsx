@@ -24,6 +24,7 @@ import {
 } from "@/constants/languages";
 import type { LanguageCode } from "@/constants/languages";
 import { useMapParams } from "@/hooks/use-map-params";
+import { setHoveredPlace } from "@/lib/place-hover";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -787,6 +788,8 @@ export function WorldMap() {
       map.removeFeatureState(hovered);
       hovered = null;
       setHoveredNames(null);
+      // 목록 쪽 강조도 같이 꺼진다
+      setHoveredPlace(null, "map");
       map.getCanvas().style.cursor = "";
     };
 
@@ -852,9 +855,16 @@ export function WorldMap() {
       const { properties } = feature;
       const names: Record<string, string> = {};
 
+      // 나라·구역으로 옮겨 갔으면 목록 쪽 강조는 꺼진다
+      if (!isMarker) setHoveredPlace(null, "map");
+
       if (isMarker) {
         // 명소 이름은 조회할 때 이미 고른 언어로 받아 뒀다 — 고를 게 하나뿐이다
         if (typeof properties.name === "string") names.local = properties.name;
+        // 목록에서 그 카드가 밝아지며 보이는 자리로 스크롤된다
+        if (typeof properties.id === "string") {
+          setHoveredPlace(properties.id, "map");
+        }
       } else if (isRegion) {
         // admin1 파일은 `name_ko` 처럼 밑줄이다 (타일의 `name:ko` 와 다르다)
         for (const { code } of LANGUAGES) {

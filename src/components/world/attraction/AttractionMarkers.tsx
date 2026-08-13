@@ -1,11 +1,13 @@
 import { AttractionMarkerLayer } from "@/components/world/attraction/AttractionMarkerLayer";
 import { fetchAttractions } from "@/lib/overpass";
 import type { LanguageCode } from "@/constants/languages";
-import type { RegionBounds } from "@/types/attraction";
+import type { AttractionCategory, RegionBounds } from "@/types/attraction";
 
 type AttractionMarkersProps = {
   bounds: RegionBounds;
   language: LanguageCode;
+  /** 고른 분류. 지도의 점도 목록과 같이 걸러진다. */
+  category: AttractionCategory | undefined;
 };
 
 /**
@@ -18,8 +20,12 @@ type AttractionMarkersProps = {
 export async function AttractionMarkers({
   bounds,
   language,
+  category,
 }: AttractionMarkersProps) {
-  const { attractions } = await fetchAttractions(bounds, language);
+  const result = await fetchAttractions(bounds, language);
+  const attractions = category
+    ? result.attractions.filter((item) => item.category === category)
+    : result.attractions;
 
   return (
     <AttractionMarkerLayer

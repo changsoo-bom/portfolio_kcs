@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ATTRACTION_CATEGORIES } from "@/types/attraction";
+
 /**
  * Overpass 응답 검증.
  *
@@ -94,6 +96,14 @@ export const mapSearchParamsSchema = z.object({
   place: z
     .string()
     .regex(/^(node|way|relation)\/\d+$/)
+    .optional()
+    .catch(undefined),
+  /**
+   * 명소 분류. 목록에 없는 값은 **없는 것으로 떨어진다** — 이상한 값 때문에
+   * 빈 목록을 보여주느니 전체를 보여주는 게 낫다.
+   */
+  category: z
+    .enum(ATTRACTION_CATEGORIES)
     .optional()
     .catch(undefined),
 });

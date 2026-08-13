@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw, Send } from "lucide-react";
+import { RotateCcw, Send, Shuffle } from "lucide-react";
 
 import { Dropdown } from "@/components/ui/Dropdown";
 import {
@@ -22,6 +22,12 @@ type FilterBarProps = {
   regions: RegionOption[];
   /** 바로가기가 데려갈 곳. 구역을 골랐으면 구역, 아니면 나라 전체. */
   target: RegionBounds | null;
+  /**
+   * 주사위가 데려갈 곳. **서버가 요청마다 새로 뽑는다** — 구역이 4584개라
+   * 목록을 여기까지 보낼 수 없고, 주소가 바뀔 때마다 페이지가 다시 렌더되니
+   * 누를 때마다 다른 곳이 온다.
+   */
+  random: { id: string; bounds: RegionBounds; name: string } | null;
 };
 
 /**
@@ -35,22 +41,21 @@ type FilterBarProps = {
  * 고르는 것과 가는 것을 갈라 뒀다. 고르기만 하면 화면은 그대로고, 바로가기를
  * 눌러야 지도가 움직인다.
  */
-export function FilterBar({ countries, regions, target }: FilterBarProps) {
+export function FilterBar({
+  countries,
+  regions,
+  target,
+  random,
+}: FilterBarProps) {
   const { language, country, region, setCountry, setRegion } = useMapParams();
   const messages = messagesOf(language);
 
-  const goTo = () => {
-    const map = mapInstance();
-    if (!target || !map) return;
-
-    const width = map.getCanvas().clientWidth;
-    // 패널이 열려 있으면 그만큼은 보이는 화면이 아니다
-    const covered = region && width > PANEL_WIDTH * 2 ? PANEL_WIDTH : 0;
-
-    map.fitBounds(
+  /** 구역 하나를 화면에 채운다. 바로가기와 주사위가 같은 자리에 도착해야 한다. */
+  const fit = (bounds: RegionBounds, covered: number, maxZoom: number) => {
+    mapInstance()?.fitBounds(
       [
-        [target.west, target.south],
-        [target.east, target.north],
+        [bounds.west, bounds.south],
+        [bounds.east, bounds.north],
       ],
       {
         padding: {
@@ -59,10 +64,37 @@ export function FilterBar({ countries, regions, target }: FilterBarProps) {
           left: FIT_PADDING,
           right: FIT_PADDING + covered,
         },
-        maxZoom: region ? REGION_FIT_MAX_ZOOM : FIT_MAX_ZOOM,
+        maxZoom,
         duration: FIT_DURATION,
       },
     );
+  };
+
+  /**
+   * 아무 데나 데려간다.
+   *
+   * 고르는 것과 가는 것을 가른 다른 버튼들과 달리 이건 **한 번에 둘 다 한다** —
+   * 어디로 갈지 모르는 채 누르는 버튼이라 확인할 것이 없다.
+   */
+  const surprise = () => {
+    if (!random) return;
+    setRegion(random.id);
+
+    const map = mapInstance();
+    const width = map?.getCanvas().clientWidth ?? 0;
+    // 도착하면 패널이 열린다 — 그 폭은 처음부터 빼고 맞춘다
+    fit(random.bounds, width > PANEL_WIDTH * 2 ? PANEL_WIDTH : 0, REGION_FIT_MAX_ZOOM);
+  };
+
+  const goTo = () => {
+    const map = mapInstance();
+    if (!target || !map) return;
+
+    // 패널이 열려 있으면 그만큼은 보이는 화면이 아니다
+    const width = map.getCanvas().clientWidth;
+    const covered = region && width > PANEL_WIDTH * 2 ? PANEL_WIDTH : 0;
+
+    fit(target, covered, region ? REGION_FIT_MAX_ZOOM : FIT_MAX_ZOOM);
   };
 
   /**
@@ -96,7 +128,7 @@ export function FilterBar({ countries, regions, target }: FilterBarProps) {
         onChange={setRegion}
       />
 
-      {/* 되돌리기는 뒤에 숨는 색으로 — 눌러야 할 버튼은 옆의 흰 것이다 */}
+      {/* 되돌리기와 주사위는 뒤에 숨는 색으로 — 눌러야 할 버튼은 옆의 흰 것이다 */}
       <button
         type="button"
         aria-label={messages.reset}
@@ -105,6 +137,17 @@ export function FilterBar({ countries, regions, target }: FilterBarProps) {
         className="flex items-center justify-center h-9 w-9 text-white/60 bg-white/5 rounded-full transition-colors hover:bg-white/10 hover:text-white"
       >
         <RotateCcw className="h-4 w-4" />
+      </button>
+
+      <button
+        type="button"
+        aria-label={messages.surprise}
+        title={messages.surprise}
+        onClick={surprise}
+        disabled={!random}
+        className="flex items-center justify-center h-9 w-9 text-white/60 bg-white/5 rounded-full transition-colors hover:bg-white/10 hover:text-white disabled:bg-white/5 disabled:text-white/25"
+      >
+        <Shuffle className="h-4 w-4" />
       </button>
 
       {/*

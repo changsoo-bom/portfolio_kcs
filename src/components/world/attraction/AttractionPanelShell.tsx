@@ -10,6 +10,11 @@ type AttractionPanelShellProps = {
   title: string;
   /** 개수도 조회가 끝나야 나온다 — 셀 때까지 기다리는 표시를 대신 받는다. */
   count: ReactNode;
+  /**
+   * 분류 칩. **목록과 같이 스크롤되면 안 돼서** children 이 아니라 따로 받는다 —
+   * 아래로 훑는 동안 필터가 화면 밖으로 사라지면 되돌아갈 방법이 안 보인다.
+   */
+  filter: ReactNode;
   children: ReactNode;
 };
 
@@ -29,6 +34,7 @@ type AttractionPanelShellProps = {
 export function AttractionPanelShell({
   title,
   count,
+  filter,
   children,
 }: AttractionPanelShellProps) {
   const { language, setRegion } = useMapParams();
@@ -66,6 +72,9 @@ export function AttractionPanelShell({
           ✕
         </button>
       </header>
+
+      {/* 헤더 아래에 붙박이로 둔다 */}
+      {filter}
 
       {/* 목록만 스크롤한다 — 제목은 붙어 있어야 어느 구역인지 잃지 않는다 */}
       <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-slim">

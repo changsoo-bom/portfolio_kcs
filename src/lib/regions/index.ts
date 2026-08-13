@@ -58,6 +58,26 @@ export function regionOptions(
     .sort((a, b) => a.label.localeCompare(b.label, language));
 }
 
+/**
+ * 아무 구역이나 하나. 지구본만 보고 어디를 눌러야 할지 모르는 사람에게
+ * 시작점을 준다.
+ *
+ * **뽑는 일은 서버가 한다.** 구역이 4584개라 목록을 클라이언트로 보낼 수 없고,
+ * 페이지가 요청마다 새로 렌더되므로 누를 때마다 다른 곳이 나온다.
+ *
+ * 이름이 없는 구역은 뺀다 — 도착해서 패널 제목이 비면 어디에 온 건지 모른다.
+ */
+export function randomRegion(
+  language: LanguageCode,
+): { id: string; bounds: RegionBounds; name: string } | null {
+  const ids = Object.keys(REGIONS).filter((id) => nameOf(REGIONS[id].names, language));
+  if (ids.length === 0) return null;
+
+  const id = ids[Math.floor(Math.random() * ids.length)];
+  const entry = regionEntryOf(id, language);
+  return entry ? { id, ...entry } : null;
+}
+
 export function countryNameOf(country: string, language: LanguageCode) {
   const names = COUNTRIES[country];
   return names ? nameOf(names, language) : null;

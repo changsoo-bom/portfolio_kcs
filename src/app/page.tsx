@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AttractionCount } from "@/components/world/attraction/AttractionCount";
+import { AttractionFilter } from "@/components/world/attraction/AttractionFilter";
+import { AttractionHoverBridge } from "@/components/world/attraction/AttractionHoverBridge";
 import { AttractionListSkeleton } from "@/components/world/attraction/AttractionListSkeleton";
 import { AttractionMarkers } from "@/components/world/attraction/AttractionMarkers";
 import { AttractionPanel } from "@/components/world/attraction/AttractionPanel";
@@ -16,6 +18,7 @@ import {
   countryBoundsOf,
   countryOf,
   countryOptions,
+  randomRegion,
   regionEntryOf,
   regionOptions,
 } from "@/lib/regions";
@@ -27,7 +30,8 @@ type HomeProps = {
 
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
-  const { region, place, country } = mapSearchParamsSchema.parse(params);
+  const { region, place, country, category } =
+    mapSearchParamsSchema.parse(params);
 
   const raw = params.lang;
 
@@ -85,6 +89,8 @@ export default async function Home({ searchParams }: HomeProps) {
   const query = new URLSearchParams();
   if (region) query.set("region", region);
   if (typeof raw === "string") query.set("lang", raw);
+  // 걸러 놓은 상태를 잃지 않는다 — 모달을 닫으면 고른 분류 그대로 돌아온다
+  if (category) query.set("category", category);
 
   return (
     // h-dvh 로 높이를 직접 잡는다 — html/body 로 이어지는 퍼센트 사슬에 기대지 않고,
@@ -96,6 +102,8 @@ export default async function Home({ searchParams }: HomeProps) {
         countries={countryOptions(language)}
         regions={picked ? regionOptions(picked, language) : []}
         target={target}
+        // 요청마다 새로 뽑는다 — 그래서 누를 때마다 다른 곳으로 간다
+        random={randomRegion(language)}
       />
       <WorldScene />
 
@@ -105,7 +113,11 @@ export default async function Home({ searchParams }: HomeProps) {
       */}
       {entry && (
         <Suspense key={region} fallback={null}>
-          <AttractionMarkers bounds={entry.bounds} language={language} />
+          <AttractionMarkers
+            bounds={entry.bounds}
+            language={language}
+            category={category}
+          />
         </Suspense>
       )}
 
@@ -130,17 +142,31 @@ export default async function Home({ searchParams }: HomeProps) {
           title={entry.name}
           count={
             <Suspense key={region} fallback={messages.searching}>
-              <AttractionCount bounds={entry.bounds} language={language} />
+              <AttractionCount
+                bounds={entry.bounds}
+                language={language}
+                category={category}
+              />
+            </Suspense>
+          }
+          filter={
+            /* 개수를 세려면 조회가 끝나야 한다 — 그때까지는 자리를 비운다 */
+            <Suspense key={region} fallback={null}>
+              <AttractionFilter bounds={entry.bounds} language={language} />
             </Suspense>
           }
         >
-          <Suspense key={region} fallback={<AttractionListSkeleton />}>
-            <AttractionPanel
-              bounds={entry.bounds}
-              language={language}
-              query={query.toString()}
-            />
-          </Suspense>
+          {/* 카드와 지도의 점을 잇는다 — 카드는 서버 컴포넌트로 남는다 */}
+          <AttractionHoverBridge>
+            <Suspense key={region} fallback={<AttractionListSkeleton />}>
+              <AttractionPanel
+                bounds={entry.bounds}
+                language={language}
+                category={category}
+                query={query.toString()}
+              />
+            </Suspense>
+          </AttractionHoverBridge>
         </AttractionPanelShell>
       )}
 

@@ -35,6 +35,12 @@ export function AttractionCard({
     <Link
       href={`?${query}&place=${encodeURIComponent(attraction.id)}`}
       scroll={false}
+      /*
+        지도와 이어 주는 표. 카드마다 클라이언트 경계를 두지 않으려고
+        `AttractionHoverBridge` 가 이 값을 위임으로 읽는다 — 카드는 서버
+        컴포넌트로 남는다.
+      */
+      data-place={attraction.id}
       className="block overflow-hidden rounded-xl bg-white/5 transition-colors hover:bg-white/10"
     >
       <div className="relative aspect-4/3 w-full">

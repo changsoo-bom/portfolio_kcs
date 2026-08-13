@@ -24,12 +24,16 @@ type Messages = {
   region: string;
   goTo: string;
   reset: string;
+  /** 아무 구역이나 데려가는 버튼. */
+  surprise: string;
   search: string;
   noMatch: string;
 
   searching: string;
   /** 개수는 언어마다 붙는 자리가 달라서 문장째로 만든다. */
   places: (count: number) => string;
+  /** 분류 칩의 "전체". */
+  all: string;
   empty: string;
   unavailable: string;
 
@@ -58,11 +62,13 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     region: "지역",
     goTo: "바로가기",
     reset: "초기화",
+    surprise: "아무 데나",
     search: "검색",
     noMatch: "결과 없음",
 
     searching: "찾는 중…",
     places: (count) => `${count}곳`,
+    all: "전체",
     empty: "이 구역에서 찾은 명소가 없다.",
     unavailable: "지금은 명소를 불러오지 못했다. 잠시 뒤에 다시 눌러보자.",
     address: "주소",
@@ -96,11 +102,13 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     region: "Region",
     goTo: "Go",
     reset: "Reset",
+    surprise: "Surprise me",
     search: "Search",
     noMatch: "No matches",
 
     searching: "SEARCHING…",
     places: (count) => `${count} PLACES`,
+    all: "All",
     empty: "No places found in this area.",
     unavailable: "Couldn't load places right now. Try again in a moment.",
     address: "Address",
@@ -134,11 +142,13 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     region: "地域",
     goTo: "移動",
     reset: "リセット",
+    surprise: "おまかせ",
     search: "検索",
     noMatch: "該当なし",
 
     searching: "検索中…",
     places: (count) => `${count}件`,
+    all: "すべて",
     empty: "この地域では名所が見つかりませんでした。",
     unavailable:
       "今は名所を読み込めませんでした。少ししてからもう一度お試しください。",
@@ -173,11 +183,13 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     region: "地区",
     goTo: "前往",
     reset: "重置",
+    surprise: "随便逛逛",
     search: "搜索",
     noMatch: "无结果",
 
     searching: "搜索中…",
     places: (count) => `${count} 个地点`,
+    all: "全部",
     empty: "在该地区没有找到景点。",
     unavailable: "暂时无法加载景点，请稍后再试。",
     address: "地址",
@@ -211,11 +223,13 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     region: "Región",
     goTo: "Ir",
     reset: "Restablecer",
+    surprise: "Sorpréndeme",
     search: "Buscar",
     noMatch: "Sin resultados",
 
     searching: "BUSCANDO…",
     places: (count) => `${count} LUGARES`,
+    all: "Todo",
     empty: "No se encontraron lugares en esta zona.",
     unavailable:
       "No se pudieron cargar los lugares. Inténtalo de nuevo en un momento.",
@@ -250,11 +264,13 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     region: "Région",
     goTo: "Aller",
     reset: "Réinitialiser",
+    surprise: "Au hasard",
     search: "Rechercher",
     noMatch: "Aucun résultat",
 
     searching: "RECHERCHE…",
     places: (count) => `${count} LIEUX`,
+    all: "Tout",
     empty: "Aucun lieu trouvé dans cette zone.",
     unavailable:
       "Impossible de charger les lieux pour le moment. Réessayez dans un instant.",
@@ -289,11 +305,13 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     region: "Region",
     goTo: "Los",
     reset: "Zurücksetzen",
+    surprise: "Überrasch mich",
     search: "Suchen",
     noMatch: "Keine Treffer",
 
     searching: "SUCHE…",
     places: (count) => `${count} ORTE`,
+    all: "Alle",
     empty: "In diesem Gebiet wurden keine Orte gefunden.",
     unavailable:
       "Die Orte konnten gerade nicht geladen werden. Versuchen Sie es gleich noch einmal.",
@@ -328,11 +346,13 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     region: "Регион",
     goTo: "Перейти",
     reset: "Сброс",
+    surprise: "Наугад",
     search: "Поиск",
     noMatch: "Ничего не найдено",
 
     searching: "ПОИСК…",
     places: (count) => `${count} МЕСТ`,
+    all: "Все",
     empty: "В этом районе мест не найдено.",
     unavailable: "Сейчас не удалось загрузить места. Попробуйте чуть позже.",
     address: "Адрес",
@@ -366,11 +386,13 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     region: "Região",
     goTo: "Ir",
     reset: "Redefinir",
+    surprise: "Surpreenda-me",
     search: "Buscar",
     noMatch: "Sem resultados",
 
     searching: "BUSCANDO…",
     places: (count) => `${count} LUGARES`,
+    all: "Tudo",
     empty: "Nenhum lugar encontrado nesta área.",
     unavailable:
       "Não foi possível carregar os lugares agora. Tente novamente em instantes.",
@@ -405,11 +427,13 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     region: "Vùng",
     goTo: "Đi tới",
     reset: "Đặt lại",
+    surprise: "Ngẫu nhiên",
     search: "Tìm kiếm",
     noMatch: "Không có kết quả",
 
     searching: "ĐANG TÌM…",
     places: (count) => `${count} ĐỊA ĐIỂM`,
+    all: "Tất cả",
     empty: "Không tìm thấy địa điểm nào trong khu vực này.",
     unavailable: "Hiện chưa tải được địa điểm. Hãy thử lại sau giây lát.",
     address: "Địa chỉ",

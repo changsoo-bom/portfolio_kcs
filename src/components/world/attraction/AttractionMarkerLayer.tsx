@@ -6,8 +6,10 @@ import { useEffect } from "react";
 import {
   NO_PLACES,
   PLACE_SOURCE,
+  mapInstance,
   onMapReady,
 } from "@/components/world/map/map-instance";
+import { onHoveredPlace } from "@/lib/place-hover";
 import type { AttractionPoint } from "@/types/attraction";
 
 /**
@@ -46,9 +48,40 @@ export function AttractionMarkerLayer({
       source.setData(data);
     });
 
+    /**
+     * 목록에서 카드를 가리키면 그 점을 키운다.
+     *
+     * 지도에서 시작한 호버는 지도가 이미 칠하고 있다 — 여기서 또 칠하면
+     * 두 곳이 같은 상태를 두고 다투다가 커서를 뗀 뒤에도 하나가 남는다.
+     *
+     * 소스의 feature id 는 위에서 매긴 순번이라 OSM id 로 되짚을 표가 필요하다.
+     */
+    const order = new Map(points.map((point, index) => [point.id, index]));
+    let painted: number | null = null;
+
+    const paint = (index: number | null) => {
+      const map = mapInstance();
+      if (!map || !map.getSource(PLACE_SOURCE)) return;
+
+      if (painted !== null) {
+        map.removeFeatureState({ source: PLACE_SOURCE, id: painted });
+      }
+      painted = index;
+      if (index !== null) {
+        map.setFeatureState({ source: PLACE_SOURCE, id: index }, { hover: true });
+      }
+    };
+
+    const offHover = onHoveredPlace((id, from) => {
+      if (from !== "list") return;
+      paint(id === null ? null : (order.get(id) ?? null));
+    });
+
     // 구역을 닫으면 이 컴포넌트가 사라진다 — 점도 같이 걷는다
     return () => {
       off();
+      offHover();
+      paint(null);
       attached?.setData(NO_PLACES);
     };
   }, [points]);

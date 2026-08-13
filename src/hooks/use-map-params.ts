@@ -108,6 +108,24 @@ export function useMapParams() {
     [update],
   );
 
+  /**
+   * 분류 필터. 되돌리기 대상이 아니다 — 칩을 몇 번 눌렀는지가 히스토리에
+   * 쌓이면 뒤로가기가 필터를 되감는 버튼이 된다.
+   *
+   * 열어 둔 장소는 같이 닫는다. 걸러낸 분류의 장소가 모달로 떠 있으면
+   * 목록에 없는 것을 보고 있는 셈이다.
+   */
+  const setCategory = useCallback(
+    (value: string | null) => {
+      update((params) => {
+        if (value) params.set("category", value);
+        else params.delete("category");
+        params.delete("place");
+      }, true);
+    },
+    [update],
+  );
+
   // 장소도 되돌리기 대상이다 — 뒤로가기로 모달만 닫히고 목록은 남는다.
   const setPlace = useCallback(
     (value: string | null) => {
@@ -123,9 +141,11 @@ export function useMapParams() {
     language,
     country,
     region,
+    category: searchParams.get("category"),
     setLanguage,
     setCountry,
     setRegion,
+    setCategory,
     setPlace,
   };
 }

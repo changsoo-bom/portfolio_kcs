@@ -2,12 +2,14 @@ import { AttractionCard } from "@/components/world/attraction/AttractionCard";
 import { messagesOf } from "@/constants/messages";
 import { fetchAttractions } from "@/lib/overpass";
 import type { LanguageCode } from "@/constants/languages";
-import type { RegionBounds } from "@/types/attraction";
+import type { AttractionCategory, RegionBounds } from "@/types/attraction";
 
 type AttractionPanelProps = {
   bounds: RegionBounds;
   language: LanguageCode;
-  /** 카드 링크가 얹힐 지금의 파라미터(region·lang). */
+  /** 고른 분류. 없으면 전부 보여준다. */
+  category: AttractionCategory | undefined;
+  /** 카드 링크가 얹힐 지금의 파라미터(region·lang·category). */
   query: string;
 };
 
@@ -21,10 +23,18 @@ type AttractionPanelProps = {
 export async function AttractionPanel({
   bounds,
   language,
+  category,
   query,
 }: AttractionPanelProps) {
-  const { status, attractions } = await fetchAttractions(bounds, language);
+  const result = await fetchAttractions(bounds, language);
+  const { status } = result;
   const messages = messagesOf(language);
+
+  // 거르는 건 여기서 한다 — 칩의 개수는 거르기 전 목록에서 세야 해서,
+  // 조회 자체는 분류를 모르는 채로 둔다
+  const attractions = category
+    ? result.attractions.filter((item) => item.category === category)
+    : result.attractions;
 
   if (attractions.length === 0) {
     return (

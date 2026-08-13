@@ -1,11 +1,13 @@
 import { messagesOf } from "@/constants/messages";
 import { fetchAttractions } from "@/lib/overpass";
 import type { LanguageCode } from "@/constants/languages";
-import type { RegionBounds } from "@/types/attraction";
+import type { AttractionCategory, RegionBounds } from "@/types/attraction";
 
 type AttractionCountProps = {
   bounds: RegionBounds;
   language: LanguageCode;
+  /** 고른 분류. 헤더 숫자는 **지금 보이는 것**을 센다. */
+  category: AttractionCategory | undefined;
 };
 
 /**
@@ -18,7 +20,12 @@ type AttractionCountProps = {
 export async function AttractionCount({
   bounds,
   language,
+  category,
 }: AttractionCountProps) {
   const { attractions } = await fetchAttractions(bounds, language);
-  return messagesOf(language).places(attractions.length);
+  const shown = category
+    ? attractions.filter((item) => item.category === category).length
+    : attractions.length;
+
+  return messagesOf(language).places(shown);
 }
