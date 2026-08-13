@@ -31,6 +31,44 @@
 }
 
 /*
+  분류 칩이 놓이는 가로 띠.
+
+  막대를 없애고 **양 끝을 흐리게** 해서 더 있다는 걸 알린다. 스크롤바는
+  자리를 차지하는 데다, 이 띠는 높이가 28px 이라 막대가 칩만큼 두꺼워진다.
+
+  두 변수를 하나의 mask 가 같이 읽는다. 끝에 닿았는지에 따라 켜고 끄는데,
+  규칙을 둘로 나누면 나중 것이 앞의 mask 를 통째로 덮어써서 한쪽만 남는다.
+*/
+.chip-track {
+  --fade-l: 0px;
+  --fade-r: 0px;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black var(--fade-l),
+    black calc(100% - var(--fade-r)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black var(--fade-l),
+    black calc(100% - var(--fade-r)),
+    transparent 100%
+  );
+}
+.chip-track::-webkit-scrollbar {
+  display: none;
+}
+.chip-track[data-fade-start] {
+  --fade-l: 1.5rem;
+}
+.chip-track[data-fade-end] {
+  --fade-r: 1.5rem;
+}
+
+/*
   지도의 점에 커서를 올렸을 때 밝아지는 카드.
 
   클래스가 아니라 data 속성으로 거는 이유는, 이걸 켜는 쪽(AttractionHoverBridge)이
