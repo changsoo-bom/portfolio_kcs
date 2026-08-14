@@ -91,7 +91,7 @@ const FETCH_LIMIT = 180;
 const REVALIDATE = 60 * 60 * 24;
 
 /** 공용 서버 예의 — 어디서 오는 요청인지 밝힌다. */
-const USER_AGENT = "world-atlas (https://github.com/changsoo-bom/portfolio_kcs)";
+const USER_AGENT = "world-atlas (https://github.com/changsoo-bom/world-atlas)";
 
 /** 다음 곳으로 넘어가기 전에 쉬는 시간(ms). 공용 서버에 몰아치지 않는다. */
 const RETRY_DELAY = 1500;

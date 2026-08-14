@@ -187,7 +187,7 @@ export default function About() {
 
         <footer className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-20 pt-8 border-t border-white/10 font-mono text-xs tracking-[0.2em] text-white/40">
           <a
-            href="https://github.com/changsoo-bom/portfolio_kcs"
+            href="https://github.com/changsoo-bom/world-atlas"
             target="_blank"
             rel="noreferrer"
             className="transition-colors hover:text-white"

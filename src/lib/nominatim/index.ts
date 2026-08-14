@@ -16,7 +16,7 @@ const ENDPOINT = "https://nominatim.openstreetmap.org/reverse";
 /** 주소는 명소 목록보다도 덜 바뀐다. 한 달을 잡는다. */
 const REVALIDATE = 60 * 60 * 24 * 30;
 
-const USER_AGENT = "world-atlas (https://github.com/changsoo-bom/portfolio_kcs)";
+const USER_AGENT = "world-atlas (https://github.com/changsoo-bom/world-atlas)";
 
 /**
  * 건물 단위. 더 올리면 개별 주소가 안 나오고, 더 내리면 도로까지만 나온다.
