@@ -138,6 +138,61 @@
   }
 }
 
+/*
+  `/about` 을 들고 날 때.
+
+  설명 페이지와 지구본은 배경이 같은 우주색이라, 표시가 없으면 화면이 갈린
+  건지 글만 얹힌 건지 읽히지 않는다. 글만 아래에서 떠오르고 아래로 가라앉아
+  어느 쪽이 얹힌 것인지 알린다 — 지구본은 그 뒤에서 기본 크로스페이드를 탄다.
+
+  이름(`about-in`·`about-out`)은 `about/page.tsx` 의 `<ViewTransition>` 이
+  붙여 주는 것이고, 클래스 선택자로 잡는다.
+
+  **나가는 쪽이 더 빠르다.** 들어올 때는 무엇이 왔는지 볼 시간이 필요하지만
+  치울 때는 아니다. 들어오는 쪽을 나가는 쪽이 끝난 뒤로 미뤄, 둘이 반투명하게
+  겹쳐 흐려지는 구간을 없앤다.
+*/
+::view-transition-new(.about-in) {
+  animation: 260ms cubic-bezier(0.22, 1, 0.36, 1) 180ms both about-rise;
+}
+
+::view-transition-old(.about-out) {
+  animation: 180ms ease-in both about-sink;
+}
+
+/* 뒤에 남는 지구본 쪽. 글의 움직임과 길이를 맞춘다 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 260ms;
+}
+
+@keyframes about-rise {
+  from {
+    opacity: 0;
+    translate: 0 1rem;
+  }
+}
+
+@keyframes about-sink {
+  to {
+    opacity: 0;
+    translate: 0 1rem;
+  }
+}
+
+/*
+  전환이 도는 동안 화면을 덮는 판.
+
+  **배경을 깔아야 한다.** 두 화면이 겹치는 순간 뒤가 비치는데 `body` 는
+  흰색이라, 그대로 두면 어두운 화면 둘 사이에 흰 섬광이 한 번 든다.
+
+  덮개가 클릭도 같이 삼킨다 — 밑의 살아 있는 화면으로 흘려보낸다.
+*/
+::view-transition {
+  background: #0a0a24;
+  pointer-events: none;
+}
+
 /* 움직임을 줄여 달라고 한 사람에게는 최종 상태만 보여준다 */
 @media (prefers-reduced-motion: reduce) {
   .animate-panel-in,
@@ -148,6 +203,14 @@
   .animate-pop-out {
     /* 0 으로 두면 끝났다는 신호가 안 와서 닫기가 영영 안 끝난다 */
     animation-duration: 1ms;
+  }
+
+  /* 클래스가 붙은 위쪽 규칙이 더 세다 — 여기서는 !important 여야 이긴다 */
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 1ms !important;
+    animation-delay: 0s !important;
   }
 }
 

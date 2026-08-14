@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ViewTransition } from "react";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
@@ -91,115 +92,130 @@ const NUMBERS = [
   { value: "1회", label: "구역당 하루 외부 호출" },
 ];
 
+/**
+ * 들고 남을 애니메이션으로 잇는다. 지구본과 이 글은 배경색이 같아서, 아무
+ * 표시 없이 갈리면 화면이 통째로 바뀐 건지 글만 얹힌 건지 읽히지 않는다.
+ *
+ * **감싸는 자리가 페이지여야 한다.** 레이아웃은 이동해도 다시 마운트되지
+ * 않으므로 거기서는 들고 남 자체가 일어나지 않는다.
+ *
+ * 지구본 쪽은 감싸지 않는다. 감싸지 않은 것은 `root` 하나로 묶여 기본
+ * 크로스페이드를 타므로, 이 글만 따로 움직이고 뒤는 자연스럽게 비쳐 든다.
+ *
+ * `default="none"` 은 관계없는 전환에 휩쓸리지 않기 위한 것이다 — 없으면
+ * 이름이 붙은 이 덩어리가 페이지 안의 다른 전환마다 같이 흔들린다.
+ */
 export default function About() {
   return (
-    <main
-      className="min-h-dvh px-6 py-16 sm:px-10"
-      style={{ background: SPACE, color: INK }}
-    >
-      <div className="mx-auto w-full max-w-3xl">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 mb-14 font-mono text-xs tracking-[0.2em] text-white/50 transition-colors hover:text-white"
-        >
-          <ArrowLeft aria-hidden="true" strokeWidth={1.5} className="h-4 w-4" />
-          지구본으로
-        </Link>
-
-        <header className="pb-10 border-b border-white/10">
-          <p
-            className="mb-5 font-mono text-xs tracking-[0.4em]"
-            style={{ color: ACCENT }}
+    <ViewTransition enter="about-in" exit="about-out" default="none">
+      <main
+        className="min-h-dvh px-6 py-16 sm:px-10"
+        style={{ background: SPACE, color: INK }}
+      >
+        <div className="mx-auto w-full max-w-3xl">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 mb-14 font-mono text-xs tracking-[0.2em] text-white/50 transition-colors hover:text-white"
           >
-            WORLD ATLAS
-          </p>
-          <h1 className="text-3xl leading-tight font-semibold sm:text-4xl">
-            지구본에서 나라와 지역을 따라 들어가
-            <br />그 지역의 명소를 찾는 지도입니다.
-          </h1>
-          <p className="mt-6 text-base leading-relaxed text-white/60">
-            전 세계 4,584개 행정구역을 대상으로 합니다. 나라를 누르면 그 안의
-            지역이 갈라지고, 지역을 누르면 오른쪽에 명소 목록이 열립니다.
-            명소 정보는 모두 공개 데이터에서 옵니다.
-          </p>
-        </header>
-
-        {/* 숫자 넷. 이 프로젝트의 성격이 여기서 한눈에 읽힌다 */}
-        <section className="grid grid-cols-2 gap-px mt-10 bg-white/10 border border-white/10 rounded-2xl overflow-hidden sm:grid-cols-4">
-          {NUMBERS.map(({ value, label }) => (
-            <div
-              key={label}
-              className="px-4 py-5"
-              style={{ background: SPACE }}
-            >
-              <p
-                className="text-2xl leading-none font-semibold tabular-nums"
-                style={{ color: ACCENT }}
-              >
-                {value}
-              </p>
-              <p className="mt-2 text-xs leading-snug text-white/50">{label}</p>
-            </div>
-          ))}
-        </section>
-
-        <Section title="무엇으로 만들었나">
-          <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-[13rem_1fr]">
-            {STACK.map(({ name, role }) => (
-              <Row key={name} term={name} detail={role} />
-            ))}
-          </dl>
-        </Section>
-
-        <Section title="데이터는 어디서 오나">
-          <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-[13rem_1fr]">
-            {DATA.map(({ name, role, license }) => (
-              <Row key={name} term={name} detail={`${role} · ${license}`} />
-            ))}
-          </dl>
-          <p className="mt-6 text-sm leading-relaxed text-white/40">
-            위성 사진은 비상업 이용 조건(CC BY-NC-SA 4.0)이라 상업적으로 쓰려면
-            교체해야 합니다. 지도 화면 오른쪽 아래 (i) 를 누르면 표시 의무가
-            있는 출처가 모두 나옵니다.
-          </p>
-        </Section>
-
-        <Section title="만들면서 내린 결정">
-          <ol className="grid gap-8">
-            {DECISIONS.map(({ title, body }, index) => (
-              <li key={title} className="grid gap-2">
-                <p className="flex items-baseline gap-3 text-base font-semibold">
-                  <span
-                    className="font-mono text-xs tabular-nums"
-                    style={{ color: ACCENT }}
-                  >
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  {title}
-                </p>
-                <p className="text-sm leading-relaxed text-white/60 sm:pl-9">
-                  {body}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </Section>
-
-        <footer className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-20 pt-8 border-t border-white/10 font-mono text-xs tracking-[0.2em] text-white/40">
-          <a
-            href="https://github.com/changsoo-bom/world-atlas"
-            target="_blank"
-            rel="noreferrer"
-            className="transition-colors hover:text-white"
-          >
-            GITHUB ↗
-          </a>
-          <Link href="/" className="transition-colors hover:text-white">
-            지구본으로 ↩
+            <ArrowLeft
+              aria-hidden="true"
+              strokeWidth={1.5}
+              className="h-4 w-4"
+            />
+            지구본으로
           </Link>
-        </footer>
-      </div>
-    </main>
+
+          <header className="pb-10 border-b border-white/10">
+            <p
+              className="mb-5 font-mono text-xs tracking-[0.4em]"
+              style={{ color: ACCENT }}
+            >
+              WORLD ATLAS
+            </p>
+            <h1 className="text-3xl leading-tight font-semibold sm:text-4xl">
+              지구본에서 나라와 지역을 따라 들어가
+              <br />그 지역의 명소를 찾는 지도입니다.
+            </h1>
+            <p className="mt-6 text-base leading-relaxed text-white/60">
+              전 세계 4,584개 행정구역을 대상으로 합니다. 나라를 누르면 그 안의
+              지역이 갈라지고, 지역을 누르면 오른쪽에 명소 목록이 열립니다.
+              명소 정보는 모두 공개 데이터에서 옵니다.
+            </p>
+          </header>
+
+          {/* 숫자 넷. 이 프로젝트의 성격이 여기서 한눈에 읽힌다 */}
+          <section className="grid grid-cols-2 gap-px mt-10 bg-white/10 border border-white/10 rounded-2xl overflow-hidden sm:grid-cols-4">
+            {NUMBERS.map(({ value, label }) => (
+              <div key={label} className="px-4 py-5" style={{ background: SPACE }}>
+                <p
+                  className="text-2xl leading-none font-semibold tabular-nums"
+                  style={{ color: ACCENT }}
+                >
+                  {value}
+                </p>
+                <p className="mt-2 text-xs leading-snug text-white/50">{label}</p>
+              </div>
+            ))}
+          </section>
+
+          <Section title="무엇으로 만들었나">
+            <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-[13rem_1fr]">
+              {STACK.map(({ name, role }) => (
+                <Row key={name} term={name} detail={role} />
+              ))}
+            </dl>
+          </Section>
+
+          <Section title="데이터는 어디서 오나">
+            <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-[13rem_1fr]">
+              {DATA.map(({ name, role, license }) => (
+                <Row key={name} term={name} detail={`${role} · ${license}`} />
+              ))}
+            </dl>
+            <p className="mt-6 text-sm leading-relaxed text-white/40">
+              위성 사진은 비상업 이용 조건(CC BY-NC-SA 4.0)이라 상업적으로 쓰려면
+              교체해야 합니다. 지도 화면 오른쪽 아래 (i) 를 누르면 표시 의무가
+              있는 출처가 모두 나옵니다.
+            </p>
+          </Section>
+
+          <Section title="만들면서 내린 결정">
+            <ol className="grid gap-8">
+              {DECISIONS.map(({ title, body }, index) => (
+                <li key={title} className="grid gap-2">
+                  <p className="flex items-baseline gap-3 text-base font-semibold">
+                    <span
+                      className="font-mono text-xs tabular-nums"
+                      style={{ color: ACCENT }}
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    {title}
+                  </p>
+                  <p className="text-sm leading-relaxed text-white/60 sm:pl-9">
+                    {body}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </Section>
+
+          <footer className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-20 pt-8 border-t border-white/10 font-mono text-xs tracking-[0.2em] text-white/40">
+            <a
+              href="https://github.com/changsoo-bom/world-atlas"
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-white"
+            >
+              GITHUB ↗
+            </a>
+            <Link href="/" className="transition-colors hover:text-white">
+              지구본으로 ↩
+            </Link>
+          </footer>
+        </div>
+      </main>
+    </ViewTransition>
   );
 }
 
