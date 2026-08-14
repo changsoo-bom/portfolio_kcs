@@ -15,6 +15,8 @@ type Messages = {
   title: string;
   close: string;
   settings: string;
+  /** (?) 버튼. 이 지도가 무엇인지 설명하는 페이지로 간다. */
+  about: string;
 
   zoomIn: string;
   zoomOut: string;
@@ -55,6 +57,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     title: "세계 명소 탐색 지도",
     close: "닫기",
     settings: "설정",
+    about: "이 지도에 대하여",
     zoomIn: "확대",
     zoomOut: "축소",
     zoomLevel: "지도 배율",
@@ -95,6 +98,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     title: "World attractions map",
     close: "Close",
     settings: "Settings",
+    about: "About this map",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     zoomLevel: "Zoom level",
@@ -135,6 +139,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     title: "世界の名所地図",
     close: "閉じる",
     settings: "設定",
+    about: "この地図について",
     zoomIn: "拡大",
     zoomOut: "縮小",
     zoomLevel: "地図の倍率",
@@ -176,6 +181,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     title: "世界景点地图",
     close: "关闭",
     settings: "设置",
+    about: "关于本地图",
     zoomIn: "放大",
     zoomOut: "缩小",
     zoomLevel: "地图缩放",
@@ -216,6 +222,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     title: "Mapa de lugares del mundo",
     close: "Cerrar",
     settings: "Ajustes",
+    about: "Acerca del mapa",
     zoomIn: "Acercar",
     zoomOut: "Alejar",
     zoomLevel: "Nivel de zoom",
@@ -257,6 +264,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     title: "Carte des lieux du monde",
     close: "Fermer",
     settings: "Paramètres",
+    about: "À propos de la carte",
     zoomIn: "Zoom avant",
     zoomOut: "Zoom arrière",
     zoomLevel: "Niveau de zoom",
@@ -298,6 +306,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     title: "Weltkarte der Sehenswürdigkeiten",
     close: "Schließen",
     settings: "Einstellungen",
+    about: "Über diese Karte",
     zoomIn: "Vergrößern",
     zoomOut: "Verkleinern",
     zoomLevel: "Zoomstufe",
@@ -339,6 +348,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     title: "Карта достопримечательностей мира",
     close: "Закрыть",
     settings: "Настройки",
+    about: "Об этой карте",
     zoomIn: "Приблизить",
     zoomOut: "Отдалить",
     zoomLevel: "Масштаб карты",
@@ -379,6 +389,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     title: "Mapa de atrações do mundo",
     close: "Fechar",
     settings: "Configurações",
+    about: "Sobre o mapa",
     zoomIn: "Aproximar",
     zoomOut: "Afastar",
     zoomLevel: "Nível de zoom",
@@ -420,6 +431,7 @@ export const MESSAGES: Record<LanguageCode, Messages> = {
     title: "Bản đồ điểm đến thế giới",
     close: "Đóng",
     settings: "Cài đặt",
+    about: "Giới thiệu bản đồ",
     zoomIn: "Phóng to",
     zoomOut: "Thu nhỏ",
     zoomLevel: "Mức thu phóng",

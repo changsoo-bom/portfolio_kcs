@@ -31,6 +31,18 @@ export function IntroCover() {
       ref={(el) => {
         // cleanup을 반환하는 ref는 null로 호출되지 않지만 타입상 열려 있다
         if (!el) return;
+        /**
+         * **지도 화면에서만 재생한다.** 이 커버는 레이아웃에 있어서 `/about`
+         * 같은 다른 라우트에도 딸려 오는데, 읽을 글이 있는 페이지를 3.6초 동안
+         * 덮으면 그건 로딩 표시가 아니라 방해다.
+         *
+         * 화면 안에서 오가는 경우는 레이아웃이 다시 마운트되지 않으므로 여기
+         * 걸리지 않는다 — 문서를 통째로 요청한 첫 진입에만 판정한다.
+         */
+        if (window.location.pathname !== "/") {
+          el.style.display = "none";
+          return;
+        }
         if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           el.style.display = "none";
           return;

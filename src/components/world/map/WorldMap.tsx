@@ -3,6 +3,7 @@
 import { GeoJSONSource, MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 
+import { AboutControl } from "@/components/world/map/AboutControl";
 import {
   FIT_DURATION,
   FIT_MAX_ZOOM,
@@ -1322,6 +1323,7 @@ export function WorldMap() {
         />
 
         <SettingsControl />
+        <AboutControl language={language} />
       </div>
     </div>
   );
