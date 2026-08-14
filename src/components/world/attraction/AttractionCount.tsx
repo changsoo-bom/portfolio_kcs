@@ -1,10 +1,11 @@
 import { messagesOf } from "@/constants/messages";
 import { fetchAttractions } from "@/lib/overpass";
 import type { LanguageCode } from "@/constants/languages";
-import type { AttractionCategory, RegionBounds } from "@/types/attraction";
+import type { AttractionCategory } from "@/types/attraction";
 
 type AttractionCountProps = {
-  bounds: RegionBounds;
+  /** 구역 id. 조회가 쓸 상자와 실제 모양을 둘 다 이걸로 찾는다. */
+  region: string;
   language: LanguageCode;
   /** 고른 분류. 헤더 숫자는 **지금 보이는 것**을 센다. */
   category: AttractionCategory | undefined;
@@ -18,11 +19,11 @@ type AttractionCountProps = {
  * 같은 요청 안에서는 fetch 가 합쳐져서 호출이 늘지 않는다.
  */
 export async function AttractionCount({
-  bounds,
+  region,
   language,
   category,
 }: AttractionCountProps) {
-  const { attractions } = await fetchAttractions(bounds, language);
+  const { attractions } = await fetchAttractions(region, language);
   const shown = category
     ? attractions.filter((item) => item.category === category).length
     : attractions.length;

@@ -11,14 +11,14 @@ import { CATEGORY_LOOK } from "@/constants/attraction-look";
 import { messagesOf } from "@/constants/messages";
 import { fetchAttractions } from "@/lib/overpass";
 import type { LanguageCode } from "@/constants/languages";
-import type { RegionBounds } from "@/types/attraction";
 
 type AttractionPopProps = {
   place: string;
-  bounds: RegionBounds;
+  /** 구역 id. 조회가 쓸 상자와 실제 모양을 둘 다 이걸로 찾는다. */
+  region: string;
   language: LanguageCode;
   /** 구역 이름. 구글 검색어를 좁히는 데 쓴다. */
-  region: string;
+  regionName: string;
 };
 
 const LINK =
@@ -37,11 +37,11 @@ const LINK =
  */
 export async function AttractionPop({
   place,
-  bounds,
-  language,
   region,
+  language,
+  regionName,
 }: AttractionPopProps) {
-  const { attractions } = await fetchAttractions(bounds, language);
+  const { attractions } = await fetchAttractions(region, language);
   const attraction = attractions.find((item) => item.id === place);
   if (!attraction) return null;
 
@@ -55,7 +55,7 @@ export async function AttractionPop({
    * 검색어를 좁힌다.
    */
   const search = `https://www.google.com/search?q=${encodeURIComponent(
-    `${attraction.name} ${region}`,
+    `${attraction.name} ${regionName}`,
   )}`;
 
   return (

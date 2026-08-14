@@ -2,10 +2,11 @@ import { AttractionCard } from "@/components/world/attraction/AttractionCard";
 import { messagesOf } from "@/constants/messages";
 import { fetchAttractions } from "@/lib/overpass";
 import type { LanguageCode } from "@/constants/languages";
-import type { AttractionCategory, RegionBounds } from "@/types/attraction";
+import type { AttractionCategory } from "@/types/attraction";
 
 type AttractionPanelProps = {
-  bounds: RegionBounds;
+  /** 구역 id. 조회가 쓸 상자와 실제 모양을 둘 다 이걸로 찾는다. */
+  region: string;
   language: LanguageCode;
   /** 고른 분류. 없으면 전부 보여준다. */
   category: AttractionCategory | undefined;
@@ -21,12 +22,12 @@ type AttractionPanelProps = {
  * 밀집한 구역은 응답이 10초를 넘기도 해서, 캐시가 성능 대책이기도 하다.
  */
 export async function AttractionPanel({
-  bounds,
+  region,
   language,
   category,
   query,
 }: AttractionPanelProps) {
-  const result = await fetchAttractions(bounds, language);
+  const result = await fetchAttractions(region, language);
   const { status } = result;
   const messages = messagesOf(language);
 

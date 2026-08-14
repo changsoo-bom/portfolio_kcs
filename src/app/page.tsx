@@ -111,10 +111,10 @@ export default async function Home({ searchParams }: HomeProps) {
         지도 위의 점. 화면에는 아무것도 안 그리므로 fallback 이 필요 없고,
         지도와 따로 흘러서 목록을 기다리는 동안에도 지구본은 돈다.
       */}
-      {entry && (
+      {region && entry && (
         <Suspense key={region} fallback={null}>
           <AttractionMarkers
-            bounds={entry.bounds}
+            region={region}
             language={language}
             category={category}
           />
@@ -136,14 +136,14 @@ export default async function Home({ searchParams }: HomeProps) {
         그 표시는 그대로 남는다 — 이어서 애니메이션 종료 신호가 도착해
         방금 고른 구역이 열리지도 않고 닫힌다.
       */}
-      {entry && (
+      {region && entry && (
         <AttractionPanelShell
           key={region}
           title={entry.name}
           count={
             <Suspense key={region} fallback={messages.searching}>
               <AttractionCount
-                bounds={entry.bounds}
+                region={region}
                 language={language}
                 category={category}
               />
@@ -152,7 +152,7 @@ export default async function Home({ searchParams }: HomeProps) {
           filter={
             /* 개수를 세려면 조회가 끝나야 한다 — 그때까지는 자리를 비운다 */
             <Suspense key={region} fallback={null}>
-              <AttractionFilter bounds={entry.bounds} language={language} />
+              <AttractionFilter region={region} language={language} />
             </Suspense>
           }
         >
@@ -160,7 +160,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <AttractionHoverBridge>
             <Suspense key={region} fallback={<AttractionListSkeleton />}>
               <AttractionPanel
-                bounds={entry.bounds}
+                region={region}
                 language={language}
                 category={category}
                 query={query.toString()}
@@ -179,9 +179,9 @@ export default async function Home({ searchParams }: HomeProps) {
         <Suspense key={place} fallback={null}>
           <AttractionPop
             place={place}
-            bounds={entry.bounds}
+            region={region}
             language={language}
-            region={entry.name}
+            regionName={entry.name}
           />
         </Suspense>
       )}

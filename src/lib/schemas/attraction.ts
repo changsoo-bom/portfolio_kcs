@@ -10,6 +10,12 @@ import { ATTRACTION_CATEGORIES } from "@/types/attraction";
  */
 export const overpassResponseSchema = z.object({
   elements: z.array(z.unknown()),
+  /**
+   * **Overpass 는 실패도 200 으로 준다.** 서버가 바빠 질의를 못 끝내면
+   * `elements` 를 빈 채로 두고 여기에 사유를 적어 보낸다 — 이걸 안 보면
+   * "명소가 하나도 없는 구역" 으로 읽고, 그 빈 목록이 하루치 캐시에 박힌다.
+   */
+  remark: z.string().optional(),
 });
 
 const center = z.object({ lat: z.number(), lon: z.number() });

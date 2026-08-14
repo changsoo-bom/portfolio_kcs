@@ -1,10 +1,11 @@
 import { CategoryChips } from "@/components/world/attraction/CategoryChips";
 import { fetchAttractions } from "@/lib/overpass";
 import type { LanguageCode } from "@/constants/languages";
-import type { AttractionCategory, RegionBounds } from "@/types/attraction";
+import type { AttractionCategory } from "@/types/attraction";
 
 type AttractionFilterProps = {
-  bounds: RegionBounds;
+  /** 구역 id. 조회가 쓸 상자와 실제 모양을 둘 다 이걸로 찾는다. */
+  region: string;
   language: LanguageCode;
 };
 
@@ -18,10 +19,10 @@ type AttractionFilterProps = {
  * 한 요청 안에서 합쳐진다.
  */
 export async function AttractionFilter({
-  bounds,
+  region,
   language,
 }: AttractionFilterProps) {
-  const { attractions } = await fetchAttractions(bounds, language);
+  const { attractions } = await fetchAttractions(region, language);
   if (attractions.length === 0) return null;
 
   const tally = new Map<AttractionCategory, number>();
