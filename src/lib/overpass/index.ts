@@ -18,58 +18,47 @@ import type { LanguageCode } from "@/constants/languages";
 import { FALLBACK_LANGUAGE } from "@/constants/languages";
 
 /**
- * 물어볼 곳. **순서대로 하나씩 간다.**
+ * 물어볼 곳. **먼저 답하는 곳을 쓴다.**
  *
- * **`overpass-api.de` 를 맨 앞에 두지 않는다.** 거기는 주소가 둘인데
- * (65.109.112.52 · 162.55.144.139) 그중 하나가 죽어 있고, Node 는 매번 그쪽을
- * 잡아 10초를 버린다 — 여덟 번 물어 여덟 번 다 그랬다. 브라우저나 curl 은
- * 살아 있는 쪽에 붙어서 멀쩡해 보이는 게 함정이다. 언제 고쳐질지 모르는 일이라
- * 뒤로 물리되 빼지는 않는다. 살아나면 거기가 가장 빠르고, 그때는 앞의 곳이
- * 실패해야 닿으니 순서를 되돌려 주는 게 낫다.
+ * 예전에는 순서대로 하나씩 갔는데, 그러면 앞의 곳이 느린 날 그 시간이 통째로
+ * 사용자 몫이 된다 — 서울을 열었더니 14초였다. 1순위 mail.ru 가 혼자 20초를
+ * 쓰는 동안 나머지는 시작조차 못 한다.
  *
  * **같은 질의도 곳마다 딴판이다.** 충칭을 물었더니 mail.ru 는 3.9초에 180건을
- * 주고 private.coffee 와 kumi 는 32초를 끌다 504 를 냈다. 그러니 한 곳이
- * 시간을 다 썼다고 해서 "무거운 질의라 어디서도 안 된다" 고 볼 수 없다 —
- * 끝까지 돌아 본다. 대신 전부 합쳐 `BUDGET` 을 넘기지 않는다.
+ * 주고 private.coffee 와 kumi 는 32초를 끌다 504 를 냈다. 서울은 그 반대였다.
+ * 어느 곳이 빠른지 미리 알 수 없으니 **물어보고 먼저 오는 것을 쓴다.**
+ *
+ * 그래서 죽은 곳을 건너뛰던 쿨다운 표도, 전부 합친 예산도 없앴다. 한 곳이
+ * 죽어 있어도 기다림이 안 늘어나는 구조라 둘 다 지킬 대상이 사라졌다.
  *
  * **osm.ch 는 넣으면 안 된다** — 200 을 주면서 0건을 돌려주는 지역 미러라,
- * 폴백에 끼면 "명소가 없는 구역" 으로 조용히 둔갑한다. osm.jp 는 인증서가
- * 만료됐다.
+ * 끼워 두면 "명소가 없는 구역" 으로 조용히 둔갑한다. 먼저 답하는 쪽을 쓰는
+ * 지금은 그 위험이 예전보다 크다 — 빈손이 가장 빨리 온다.
+ * osm.jp 는 인증서가 만료됐다.
  */
 const ENDPOINTS = [
-  {
-    url: "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-    timeout: 30_000,
-  },
-  { url: "https://overpass-api.de/api/interpreter", timeout: 20_000 },
-  { url: "https://overpass.private.coffee/api/interpreter", timeout: 30_000 },
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
 ];
 
 /**
- * 전부 합쳐 기다리는 한계(ms). 곳을 늘려도 사용자가 기다리는 시간은 안 늘어난다.
+ * 한 곳에 주는 시간(ms). 서울 질의가 mail.ru 에서 20초 걸렸으니 그보다 넉넉해야
+ * 한다 — 짧게 잡으면 유일하게 답할 참이던 곳을 끊는다.
  *
- * 이게 없으면 곳마다의 한계가 그대로 더해져서, 세 곳이 다 막힌 날 서버 렌더가
- * 80초씩 붙들린다. 남은 시간이 `MIN_ATTEMPT` 도 안 되면 시작하지 않는다 —
- * 어차피 못 끝낼 요청을 걸어 놓고 끊는 건 저쪽에도 폐다.
+ * 곳마다 따로 두지 않는다. 동시에 물어서 먼저 오는 것을 쓰므로 느린 곳에 짧은
+ * 한계를 주는 것이 아무것도 벌어 주지 않는다.
  */
-const BUDGET = 45_000;
-const MIN_ATTEMPT = 5_000;
+const TIMEOUT = 25_000;
 
 /**
- * 방금 안 됐던 곳은 얼마 동안 건너뛴다(ms).
+ * 첫 곳을 혼자 기다려 보는 시간(ms). 이 안에 답이 오면 나머지에는 **묻지 않는다.**
  *
- * **한 번 죽은 곳은 다음 요청에서도 죽어 있다.** 본진이 막힌 동안 재 보니
- * 8번 물어 8번 다 10초씩 버렸다 — 그 10초가 위 `BUDGET` 을 갉아먹어서, 정작
- * 답을 줄 수 있는 미러가 시간이 모자라 시도조차 못 됐다.
- *
- * 마지막 한 곳은 건너뛰지 않는다. 전부 쉬는 중이면 아무 데도 안 물어보고
- * 빈손으로 끝나는데, 그러면 회복된 뒤에도 이 시간이 지나야 살아난다.
- *
- * 15분은 **죽은 곳에 버리는 10초**와 **살아난 것을 늦게 아는 것** 사이의
- * 절충이다. 명소는 하루치로 캐시하니 늦게 알아채도 손해가 크지 않다.
+ * 세 곳에 늘 던지면 가장 빠르긴 하지만, 공용 무료 서버 셋에 매번 같은 질의를
+ * 세 번 시키는 셈이라 예의가 아니다. 하루치 캐시에 얹혀 있는 흔한 경우는 첫
+ * 곳이 곧바로 답하므로, 실제로 세 곳이 도는 건 캐시가 빈 첫 방문뿐이다.
  */
-const COOLDOWN = 15 * 60 * 1000;
-const failedAt = new Map<string, number>();
+const HEDGE_DELAY = 1_500;
 
 /** 한 구역에서 화면에 올릴 최대 개수. 도(道) 단위면 이 정도로 충분히 찬다. */
 const LIMIT = 120;
@@ -93,11 +82,8 @@ const REVALIDATE = 60 * 60 * 24;
 /** 공용 서버 예의 — 어디서 오는 요청인지 밝힌다. */
 const USER_AGENT = "world-atlas (https://github.com/changsoo-bom/world-atlas)";
 
-/** 다음 곳으로 넘어가기 전에 쉬는 시간(ms). 공용 서버에 몰아치지 않는다. */
-const RETRY_DELAY = 1500;
-
 /**
- * 사진을 기다리는 한계(ms). 명소 쪽 한계는 `ENDPOINTS` 가 곳마다 들고 있다.
+ * 사진을 기다리는 한계(ms). 명소 쪽 한계는 위의 `TIMEOUT` 이다.
  *
  * **질의문의 `[out:json][timeout:25]` 는 이걸 대신하지 못한다** — 그건 Overpass
  * 서버가 계산에 쓰는 시간이지 커넥션 한계가 아니다. Node 의 `fetch` 는 기본
@@ -366,6 +352,52 @@ async function withImages(attractions: Attraction[]): Promise<Attraction[]> {
 }
 
 /**
+ * 한 곳에 물어본다. **쓸 만한 답이 아니면 던진다** — 부르는 쪽이 다른 곳을 쓴다.
+ *
+ * 4xx 는 질의가 잘못됐다는 뜻이라 어디에 물어도 같은 답이 오지만, 여기서
+ * 따로 가르지 않는다. 어차피 세 곳이 다 같은 이유로 실패하고, 그러면 부르는
+ * 쪽이 빈손으로 끝내는 것은 매한가지다.
+ */
+async function ask(url: string, bounds: RegionBounds, signal: AbortSignal) {
+  // 어디서 막혔는지 남긴다 — 곳마다 사정이 달라서 이게 없으면 못 가른다
+  const where = new URL(url).host;
+  // 답을 받아 읽는 시간도 있으니 저쪽에는 2초 덜 준다
+  const query = encodeURIComponent(buildQuery(bounds, TIMEOUT / 1000 - 2));
+
+  // POST 가 아니라 GET 으로 부른다 — Next 의 데이터 캐시는 GET 만 저장한다
+  const response = await fetch(`${url}?data=${query}`, {
+    headers: { "User-Agent": USER_AGENT },
+    next: { revalidate: REVALIDATE },
+    /**
+     * 두 가지 이유로 끊길 수 있다: 저쪽이 너무 느리거나(`timeout`), 다른 곳이
+     * 먼저 답했거나(`signal`). Node 의 `fetch` 는 기본 타임아웃이 없어서,
+     * 앞의 것이 없으면 상대가 커넥션만 잡고 응답을 안 줄 때 서버 렌더가
+     * 영영 안 끝난다.
+     */
+    signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT)]),
+  });
+
+  if (!response.ok) {
+    throw new Error(`${where} ${response.status} ${response.statusText}`);
+  }
+
+  const body = overpassResponseSchema.safeParse(await response.json());
+  // 곳마다 무엇을 돌려주는지가 다르다 — 여기서 끝내지 말고 다른 곳 답을 쓴다
+  if (!body.success) throw new Error(`${where} 응답 모양이 다르다`);
+
+  /**
+   * 사유가 적혀 왔으면 못 끝냈다는 뜻이다 — **빈 목록을 성공으로 삼으면
+   * 안 된다.** 그대로 두면 하루치 캐시에 0건이 박혀서, 서버가 한가해진
+   * 뒤에도 그 구역은 내내 비어 보인다.
+   */
+  if (body.data.remark) {
+    throw new Error(`${where} ${body.data.remark.slice(0, 80)}`);
+  }
+
+  return body.data.elements;
+}
+
+/**
  * 구역 안의 명소 목록.
  *
  * **실패해도 던지지 않는다.** Overpass 가 죽거나 호출량 제한에 걸려도 지도까지
@@ -389,117 +421,51 @@ export const fetchAttractions = cache(async function fetchAttractions(
   const { bounds } = entry;
 
   /**
-   * 한 곳이 안 되면 다음 곳으로 넘어간다. **주소가 서로 달라야** 한다는 조건도
-   * 이걸로 저절로 풀린다 — Next 는 한 렌더 안에서 주소와 옵션이 같은 GET 을
-   * 합치므로, 같은 곳에 두 번 물으면 두 번째가 새 요청을 내지 않고 방금 받은
-   * 429 를 그대로 다시 받는다.
+   * 먼저 답한 곳이 정해지면 나머지는 여기서 끊는다 — 쓰지도 않을 답을 공용
+   * 서버에 계속 계산시키지 않는다.
    */
-  const started = Date.now();
-  /** 실제로 물어본 적이 있는지. 쉬는 곳을 건너뛴 것은 여기 안 든다. */
-  let asked = false;
+  const controller = new AbortController();
 
-  for (let attempt = 0; attempt < ENDPOINTS.length; attempt++) {
-    const endpoint = ENDPOINTS[attempt];
-    const rested = failedAt.get(endpoint.url);
-    if (
-      rested !== undefined &&
-      Date.now() - rested < COOLDOWN &&
-      attempt < ENDPOINTS.length - 1
-    ) {
-      continue;
-    }
+  const attempts = ENDPOINTS.map(async (url, index) => {
+    /**
+     * 첫 곳 말고는 잠깐 기다렸다 던진다. 첫 곳이 그 안에 답하면 — 캐시에
+     * 있으면 늘 그렇다 — 아래 `finally` 가 이미 끊어 놓은 뒤라 요청이 아예
+     * 나가지 않는다.
+     */
+    if (index > 0) await wait(HEDGE_DELAY);
+    return ask(url, bounds, controller.signal);
+  });
 
-    // 쉬는 곳을 건너뛴 것은 요청이 아니다 — 그 몫까지 쉴 이유가 없다
-    if (asked) await wait(RETRY_DELAY);
-
-    const left = BUDGET - (Date.now() - started);
-    if (left < MIN_ATTEMPT) {
-      console.warn("[overpass] 남은 시간이 없어 그만둔다");
-      break;
-    }
-
-    const timeout = Math.min(endpoint.timeout, left);
-    const { url } = endpoint;
-    // 어디서 막혔는지 남긴다 — 곳마다 사정이 달라서 이게 없으면 못 가른다
-    const where = new URL(url).host;
-    // 답을 받아 읽는 시간도 있으니 저쪽에는 2초 덜 준다
-    const query = encodeURIComponent(
-      buildQuery(bounds, Math.round(timeout / 1000) - 2),
-    );
-
-    asked = true;
-
-    try {
-      // POST 가 아니라 GET 으로 부른다 — Next 의 데이터 캐시는 GET 만 저장한다
-      const response = await fetch(`${url}?data=${query}`, {
-        headers: { "User-Agent": USER_AGENT },
-        next: { revalidate: REVALIDATE },
-        signal: AbortSignal.timeout(timeout),
-      });
-
-      // 429 는 슬롯 대기, 5xx 는 저쪽 사정이다. 둘 다 다른 곳에 물어볼 값어치가 있다.
-      if (response.status === 429 || response.status >= 500) {
-        console.warn("[overpass]", where, response.status, "다음 곳으로");
-        failedAt.set(url, Date.now());
-        continue;
-      }
-
-      // 4xx 는 질의가 잘못됐다는 뜻이라 어디에 물어도 같은 답이 온다
-      if (!response.ok) {
-        console.error("[overpass]", where, response.status, response.statusText);
-        return { status: "unavailable", attractions: [] };
-      }
-
-      const body = overpassResponseSchema.safeParse(await response.json());
-      if (!body.success) {
-        // 곳마다 무엇을 돌려주는지가 다르다 — 여기서 끝내지 말고 다음에 물어본다
-        console.error("[overpass]", where, "응답 모양이 다르다", body.error);
-        failedAt.set(url, Date.now());
-        continue;
-      }
-
-      /**
-       * 사유가 적혀 왔으면 못 끝냈다는 뜻이다 — **빈 목록을 성공으로 삼으면
-       * 안 된다.** 그대로 두면 하루치 캐시에 0건이 박혀서, 서버가 한가해진
-       * 뒤에도 그 구역은 내내 비어 보인다.
-       */
-      if (body.data.remark) {
-        console.warn("[overpass]", where, body.data.remark.slice(0, 80));
-        failedAt.set(url, Date.now());
-        continue;
-      }
-
-      // 제대로 답한 곳이다 — 쉬는 표가 남아 있으면 지운다
-      failedAt.delete(url);
-
-      const attractions = body.data.elements
-        .map((element) => toAttraction(element, language))
-        .filter((attraction) => attraction !== null);
-
-      const dropped = body.data.elements.length - attractions.length;
-      if (dropped > 0) {
-        // 대부분 이름 없는 항목이다. 수가 크면 질의나 스키마를 의심할 것.
-        console.warn(`[overpass] ${dropped}건 제외 (이름·좌표·분류 누락)`);
-      }
-
-      // 거른 뒤에 자른다 — 먼저 자르면 걸러질 것이 화면 자리를 차지한다
-      const kept = dedupe(inRegion(region, attractions)).slice(0, LIMIT);
-      return { status: "ok", attractions: await withImages(kept) };
-    } catch (error) {
-      /**
-       * **어떤 실패든 다음 곳으로 간다.** 시간을 다 썼든(`TimeoutError`) 연결이
-       * 아예 안 됐든(`TypeError`) 그건 그 곳의 사정이다 — 충칭 질의를 한 곳은
-       * 32초 끌다 놓쳤고 다른 곳은 3.9초에 줬다. 위의 `BUDGET` 이 전체를
-       * 묶고 있으니 여기서 따로 끊을 이유가 없다.
-       */
-      console.error(
-        "[overpass]",
-        where,
-        error instanceof Error ? error.name : error,
-      );
-      failedAt.set(url, Date.now());
-    }
+  let elements;
+  try {
+    /**
+     * **먼저 성공한 것을 쓴다.** 실패는 세는 게 아니라 무시한다 — 세 곳이 다
+     * 실패해야 `AggregateError` 로 떨어진다.
+     *
+     * `Promise.any` 는 넘긴 것 전부에 핸들러를 달아 두므로, 정착한 뒤에 늦게
+     * 실패하는 나머지가 처리되지 않은 거부로 새지 않는다.
+     */
+    elements = await Promise.any(attempts);
+  } catch (error) {
+    // 전부 안 됐다. 곳마다 사정이 달라서 이유를 다 남겨야 나중에 가릴 수 있다.
+    const reasons = error instanceof AggregateError ? error.errors : [error];
+    console.error("[overpass] 전부 실패 —", reasons.map(String).join(" · "));
+    return { status: "unavailable", attractions: [] };
+  } finally {
+    controller.abort();
   }
 
-  return { status: "unavailable", attractions: [] };
+  const attractions = elements
+    .map((element) => toAttraction(element, language))
+    .filter((attraction) => attraction !== null);
+
+  const dropped = elements.length - attractions.length;
+  if (dropped > 0) {
+    // 대부분 이름 없는 항목이다. 수가 크면 질의나 스키마를 의심할 것.
+    console.warn(`[overpass] ${dropped}건 제외 (이름·좌표·분류 누락)`);
+  }
+
+  // 거른 뒤에 자른다 — 먼저 자르면 걸러질 것이 화면 자리를 차지한다
+  const kept = dedupe(inRegion(region, attractions)).slice(0, LIMIT);
+  return { status: "ok", attractions: await withImages(kept) };
 });
